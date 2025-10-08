@@ -1,0 +1,43 @@
+{
+  "kliveVersion": "0.30.5",
+  "machineType": "sp48",
+  "clockMultiplier": 1,
+  "soundLevel": 0.5,
+  "soundMuted": false,
+  "savedSoundLevel": 0.5,
+  "fastLoad": true,
+  "machineSpecific": {},
+  "ide": {
+    "excludedProjectItems": []
+  },
+  "viewOptions": {
+    "theme": "dark",
+    "editorFontSize": 16,
+    "maximizeTools": false,
+    "primaryBarOnRight": false,
+    "showEmuStatusbar": true,
+    "showEmuToolbar": true,
+    "showKeyboard": false,
+    "showFrameInfo": true,
+    "showIdeStatusbar": true,
+    "showIdeToolbar": true,
+    "showSidebar": true,
+    "showToolPanels": true,
+    "toolPanelsOnTop": false
+  },
+  "debugger": {
+    "breakpoints": [
+      {
+        "resource": "code\\code.kz80.asm",
+        "line": 25,
+        "exec": true,
+        "resolvedAddress": 32812
+      }
+    ]
+  },
+  "builder": {
+    "roots": [
+      "code/code.kz80.asm"
+    ]
+  }
+}
