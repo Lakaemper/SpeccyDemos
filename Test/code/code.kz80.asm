@@ -6,6 +6,7 @@ Vector2_A:	defs 4
 
 	jp Start
 	#include "UtilsDBG.asm"
+	#include "Utils.asm"
 	#include "Screen.asm"
 	#include "Accelerator.asm"
 	#include "Vector2D.asm" 
@@ -16,26 +17,7 @@ VECTOR:		defs 4
 
 ; ====================================================
 Start:
-	call ClearScreen
-
-	ld bc,$f100
-	ld de,$0200
-	ld hl,VECTOR
-	call Store2D
-	call Print2D
-	call PrintNewline
-	ld bc,$0300
-	call Trim2D
-	ld hl,VECTOR
-	call Print2D
-
-abc:
-	jr abc
-
-
-
-
-
+	call ClearScreen	
 	;	
 	call CP_initAll		; init all centipedes
 	call CP_infoAll		; print info
@@ -44,6 +26,8 @@ mvloop:
 	call ClearScreen
 	call CP_moveAll
 	call CP_infoAll
+	ld hl,2000
+	call DelayMS
 	jr mvloop
 ente:
 	jr ente

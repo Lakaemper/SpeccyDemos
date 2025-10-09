@@ -28,7 +28,10 @@ public class Accelerator {
         // diff from pos
         p.subLocal(pos);
         p.normalizeLocal();
-        currentAcc = p;           
+        
+        p.timesLocal(2);
+        
+        currentAcc = p;            
         return currentAcc;
     }
     

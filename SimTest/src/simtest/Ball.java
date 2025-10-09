@@ -10,8 +10,8 @@ package simtest;
  * @author rlaka
  */
 public class Ball {
-    private static final int CNT_ACC_UPDATE = 10;
-    private static final double MAX_SPEED = 8.0;
+    private static final int CNT_ACC_UPDATE = 20;
+    private static final double MAX_SPEED = 6.0;
     private static final int NUM_TAILSEGMENTS = 20;
    
     TupleD pos;
@@ -52,7 +52,7 @@ public class Ball {
             accCounter = CNT_ACC_UPDATE; 
         }
         //
-        TupleD accT = acc.times(dt);
+        TupleD accT = acc.times(0.25);
         speed.addLocal(accT);
         TupleD speedT = speed.times(dt);
         pos.addLocal(speedT);  
@@ -61,8 +61,8 @@ public class Ball {
         double spd = speed.length();
         if (spd > MAX_SPEED){
             speed.normalizeLocal();
-            speed.timesLocal(spd);
-            accCounter = 1;
+            speed.timesLocal(MAX_SPEED);
+            //accCounter = 1;
         }
         // 
         // check side collisions

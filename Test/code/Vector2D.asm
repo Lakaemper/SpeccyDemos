@@ -243,9 +243,10 @@ Copy2D:
 	ret
 	
 ; ------------------------------------------------------------
-; Trim2D((hl): vectorAdr, bc: thresh)->(hl: vectorAdr):(af, bc, de, hl)
+; Trim2D((hl): vectorAdr, bc: thresh)->(hl: vectorAdr, carry):(af, bc, de, hl)
 ; Trim a 2D vector to length about (but smaller than) thresh
 ; utilizing L1 norm
+; carry set: no trimming was required
 ; Trimming Algorithm:
 ; init with vector of length/2
 ; as long as len(vec) < T: add 1/4-length , 1/8-length etc.
@@ -255,7 +256,7 @@ Copy2D:
 ; (~ 3000T)
 Trim2D:		
 	call CompareToThresh2D	
-	ret c						; NO TRIMMING REQUIRED
+	ret c						; NO TRIMMING REQUIRED (carry set)
 	;
 	; Trimming required
 	; initialize with a vector below thresh
@@ -282,4 +283,5 @@ tr_loop:
 	call Unstash2D		; get last result < T,
 	jr tr_loop			; try again with 1/2 sized summand
 tr_end:	
+	and a				; reset carry: trimming was performed
 	ret
