@@ -1,3 +1,7 @@
+; ====================================================
+; Package for 8.8 2D vector routines
+; ====================================================
+
 V2_TEMPVECTOR:  defs 4
 V2_STASH:	    defs 4
 
@@ -32,11 +36,10 @@ Retrieve2D:
 	ret
 
 ; ----------------------------------------------------
-; Sum2D(hl: adr x1,y1, de: adr x2, y2)->(hl: adr resX,resY):(f)
+; Sum2D(hl: adr x1,y1, de: adr x2, y2)->(hl: adr resX,resY):()
 ; 8.8 addition of 2D vectors
 Sum2D:
-	push af
-	push bc
+	push af	
 	push de
 	push hl	
 	;
@@ -61,41 +64,66 @@ Sum2D:
 	ld (hl),a		; store y high
 	;
 	pop hl
-	pop de
-	pop bc
+	pop de	
 	pop af
+	ret
+
+; ------------------------------------------------------------
+; Div2_2D(hl: adr)->():()
+; divide vector by 2 in place, SIGNED 8.8
+; (~ 122T)
+Div2_2D:
+	push hl
+	inc hl
+	sra (hl)
+	dec hl		
+	rr (hl)			; x / 2
+	inc hl
+	inc hl
+	inc hl
+	sra (hl)
+	dec hl
+	rr (hl)			; y / 2
+	pop hl
 	ret
 
 ;---------------------------------------------------------
 ;Div4_2D(hl: vector)->():()
-; divides vector by 4 in place
+; divides vector by 4 in place, for SIGNED 8.8
 Div4_2D:
     push hl
+	;
+    ; ---- X component ----
+    ; shift right once
     inc hl
-    srl (hl)
+    SRA (hl)        ; high byte (signed shift)
     dec hl
-    rr (hl)
+    RR  (hl)        ; low byte through carry
+    ; shift right again
     inc hl
-    srl (hl)
+    SRA (hl)
     dec hl
-    rr (hl)
+    RR  (hl)
+	;
+    ; ---- Y component ----
+    inc hl          ; move to y_low
     inc hl
     inc hl
-    inc hl
-    srl (hl)
+    SRA (hl)        ; y_high
     dec hl
-    rr (hl)
+    RR  (hl)
     inc hl
-    srl (hl)
+    SRA (hl)
     dec hl
-    rr (hl)
+    RR  (hl)
+	;
     pop hl
     ret
 
 ;---------------------------------------------------------
 ; CompareToThresh2D(hl: vector, bc: thresh)->(carry):()
+; Compares l1-norm of vector to threshold T
 ; carry set: |vector| < T
-; (~163 clock cycles)
 
 CompareToThresh2D:	
 	push bc
@@ -103,15 +131,24 @@ CompareToThresh2D:
 	push hl
 	;
 	push bc
-	ld c,(hl)
-	inc hl
-	ld b,(hl)
-	inc hl
+	; X
 	ld e,(hl)
 	inc hl
 	ld d,(hl)
-	ld h,b
-	ld l,c
+	inc hl	
+	ex de,hl			; store hl
+	push hl
+	call ABS_88
+	pop hl
+	ex de,hl			; |X| in de
+	; Y
+	ld c,(hl)
+	inc hl
+	ld b,(hl)
+	push bc
+	call ABS_88
+	pop hl				; |Y| in hl
+	;
 	add hl,de			; l1 norm in hl
 	pop de				; thresh -> de
 	or A
@@ -122,24 +159,43 @@ CompareToThresh2D:
 	pop bc
 	ret
 
-; ------------------------------------------------------------
-; Half2D(hl: adr)->():()
-; reduce a 2D 8.8 vector to half its lenght in place
-; (~ 122T)
-Half2D:
-	push hl
+;---------------------------------------------------------
+; ABS_88()->():(hl): absolute value for signed 8.8 fixed-point
+; input:   (SP+2)   = low byte
+;          (SP+3) = high byte
+; output: (SP+2),(SP+3) replaced with absolute value
+; USES STACK to pass the parameter:
+;     push bc
+;     call ABS
+;     pop bc
+; result: BC = |BC|
+ABS_88:
+	push af
+	push de				; save de
+	ld hl,$0006
+	add hl,SP			; get argument (low=LSB, high=MSB)    
+    ld e,(hl)
 	inc hl
-	srl (hl)
-	dec hl		
-	rr (hl)			; x / 2
-	inc hl
-	inc hl
-	inc hl
-	srl (hl)
+	ld d,(hl)	
+	bit 7,d				; already positive? 
+    jr z,abs_done		; yes	
+	;
+	;two's complement
+	ld a,e
+    cpl
+    ld e,a
+    ld a,d
+    cpl
+    ld d,a
+	; write back |value|
+    inc de
+    ld (hl),d
 	dec hl
-	rr (hl)			; y / 2
-	pop hl
-	ret
+	ld (hl),e
+abs_done:
+	pop de
+	pop af
+    ret
 
 ; ------------------------------------------------------------
 ; Stash2D(hl: Vector)->():()
@@ -205,7 +261,7 @@ Trim2D:
 	; initialize with a vector below thresh
 	; divide by 2 until |vector| < T
 tr_init:		
-	call Half2D
+	call Div2_2D
 	call CompareToThresh2D
 	jr nc, tr_init			
 	; here: |V| < T	
@@ -217,11 +273,11 @@ tr_loop:
 	jr z, tr_end	
 	;
 	ex de,hl
-	call Half2D			; temp / 2
+	call Div2_2D			; temp / 2
 	ex de,hl
-	call Stash2D		; keep previous result
-	call Sum2D			; V <- V + temp
-	call CompareToThresh2D	; below T?	
+	call Stash2D				; keep previous result
+	call Sum2D					; V <- V + temp	
+	call CompareToThresh2D		; below T?	
 	jr c,tr_loop		
 	call Unstash2D		; get last result < T,
 	jr tr_loop			; try again with 1/2 sized summand

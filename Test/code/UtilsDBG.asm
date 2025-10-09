@@ -1,3 +1,6 @@
+        ATTR_P EQU 23693
+
+
 ; ------------------------------------------------------------
 ; SetCursor(hl = row, col)->():(?)
 SetCursor:
@@ -109,7 +112,6 @@ Print16:
 ; ------------------------------------------------------------
 ; PrintHexDigit
 ; Input: A = 0–15
-; ------------------------------------------------------------
 PrintHexDigit:
     cp 10
     jr c,ph_digit
@@ -119,5 +121,17 @@ ph_digit:
     add a,'0'
 ph_out:
     rst 16
+    ret
+
+; ------------------------------------------------------------
+;CLS
+ClearScreen:
+    push hl
+    ld hl, ATTR_P
+    ld (hl),$44         ; bright, paper 0, ink 4 (green)
+    call $0DAF
+    ld a,1              ; blue
+    call 8859           ; setBorder
+    pop hl
     ret
 

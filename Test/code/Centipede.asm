@@ -2,16 +2,16 @@
 CP_NUM_CENTIPEDES       EQU     4                                                       ; number of centipedes
 CP_NUM_TAILSEGMENTS     EQU     4                                                       ; number of tail segments to be displayed
 CP_TAILSEGMENT_INTERVAL EQU     5                                                       ; interval between displayed tail segments
-CP_TAIL_LENGTH          EQU     CP_NUM_TAILSEGMENTS * CP_TAILSEGMENT_INTERVAL * 4
+CP_TAIL_LENGTH          EQU     CP_NUM_TAILSEGMENTS * CP_TAILSEGMENT_INTERVAL * 2       ; 2: x,y uint8, not 8.8!
 CP_ACC_UPDATE           EQU     10                                                      ; update interval for accelerator
 
 ; Struct centipede
 CP_POSHEAD      EQU     0
-CP_SPEED        EQU     4
-CP_ACC          EQU     8
-CP_TAIL         EQU     12      ; length = 4 * NUM * INTERVAL = 4 * 20 = 80
-CP_ACC_COUNT    EQU     92
-CP_END          EQU     93      ; END = length of structure
+CP_SPEED        EQU     CP_POSHEAD + 4
+CP_ACC          EQU     CP_SPEED + 4
+CP_TAIL         EQU     CP_ACC + 4                                                      
+CP_ACC_COUNT    EQU     CP_TAIL + CP_TAIL_LENGTH
+CP_END          EQU     CP_ACC_COUNT + 1                                                ; END = length of structure
 
 CENTIPEDES:     defs CP_END * CP_NUM_CENTIPEDES
 
@@ -134,28 +134,26 @@ cpina_lp1:
     ret
 
 ; --------------------------------------------------------------------------------
-; CP_updateTail(a: idx)->(hl: structStart):(de,hl)
+; CP_updateTail(a: idx)->(hl: structStart):(bc,de,hl)
 CP_updateTail:
     call CP_getStructStart
     push hl
-    ld de, CP_TAIL + CP_TAIL_LENGTH  -1   ; last tail byte
+    ld de, CP_TAIL + CP_TAIL_LENGTH  - 1   ; last tail byte
     add hl,de
     ld e,l
     ld d,h
-    dec hl
-    dec hl
-    dec hl
-    dec hl
-    ld bc,CP_TAIL_LENGTH - 4
+    dec hl                                  ; tail segment is 2 byte: x,y uint8
+    dec hl    
+    ld bc,CP_TAIL_LENGTH - 2
     LDDR
     ; head -> tail[0]
-    pop hl
+    pop hl                                  ; struct start = POSHEAD
+    inc hl                                  
     inc hl
-    inc hl
-    inc hl
-    ld bc,4
-    LDDR
-    inc hl      ; hl: structStart    
+    inc hl                                  ; hi byte Y
+    LDD        
+    dec hl                                  ; hi byte X
+    LDD                                     ; structStart in hl    
     ret
 
 ; --------------------------------------------------------------------------------
@@ -166,7 +164,8 @@ CP_move:
     push af
     push bc
     push IX
-    call CP_updateTail          ; returns structStart in hl
+    ;
+    call CP_updateTail          ; returns structStart in hl    
     push hl
     pop IX
     ; test: update accelerator required?
@@ -181,7 +180,7 @@ cpmv_updateSpeed:
     push hl                     ; struct start -> (SP)
     ld de,CP_ACC
     add hl,de                   ; hl <- acc
-    ld de,V2_temp1
+    ld de,V2_TEMPVECTOR
     call Copy2D                 ; copy acc -> temp
     ex de,hl                    ; hl: temp
     call Div4_2D                ; temp = acc/4
@@ -201,10 +200,21 @@ cpmv_updateSpeed:
 
 
 
-
-
+    ;
+cpmv_end:
     pop IX
     pop bc
     pop af
     EI
+    ret
+
+; --------------------------------------------------------------------------------
+; CP_moveAll()->():(af,b,de,hl)
+CP_moveAll:    
+    ld b,CP_NUM_CENTIPEDES
+    xor a
+cpma_lp1:        
+    call CP_move
+    inc a
+    djnz cpma_lp1    
     ret
