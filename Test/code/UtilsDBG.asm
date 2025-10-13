@@ -135,3 +135,26 @@ ClearScreen:
     pop hl
     ret
 
+; ------------------------------------------------------------
+; setBorder(a: color)->():()
+SetBorder:
+    push af
+    and $07
+    or $80
+    out ($FE),a
+    pop af
+    ret
+
+; ------------------------------------------------------------
+WaitFrame:
+    push hl
+    ld hl, 23672    
+    ld a, (hl)      ; Read current frame count
+WAIT_LOOP:
+    cp (hl)         ; Compare with current frame count
+    jr z, WAIT_LOOP    ; Loop until it changes (new frame)
+    pop hl
+    ret
+
+
+

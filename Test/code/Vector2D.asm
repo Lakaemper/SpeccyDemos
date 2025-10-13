@@ -88,9 +88,9 @@ Div2_2D:
 	ret
 
 ;---------------------------------------------------------
-;Div4_2D(hl: vector)->():()
-; divides vector by 4 in place, for SIGNED 8.8
-Div4_2D:
+;Div8_2D(hl: vector)->():()
+; divides vector by 8 in place, for SIGNED 8.8
+Div8_2D:
     push hl
 	;
     ; ---- X component ----
@@ -99,23 +99,34 @@ Div4_2D:
     SRA (hl)        ; high byte (signed shift)
     dec hl
     RR  (hl)        ; low byte through carry
-    ; shift right again
+    ; total of 3 times
+    inc hl
+    SRA (hl)
+    dec hl
+    RR  (hl)	
     inc hl
     SRA (hl)
     dec hl
     RR  (hl)
 	;
     ; ---- Y component ----
-    inc hl          ; move to y_low
-    inc hl
-    inc hl
-    SRA (hl)        ; y_high
+    inc hl          ; move to y
+    inc hl			
+    ;
+	inc hl			; y high
+    SRA (hl)
     dec hl
     RR  (hl)
+	;
     inc hl
     SRA (hl)
     dec hl
     RR  (hl)
+	;
+    inc hl
+    SRA (hl)
+    dec hl
+    RR  (hl)	
 	;
     pop hl
     ret

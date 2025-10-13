@@ -18,16 +18,17 @@ VECTOR:		defs 4
 ; ====================================================
 Start:
 	call ClearScreen	
-	;	
 	call CP_initAll		; init all centipedes
-	call CP_infoAll		; print info
+	;call CP_infoAll		; print info
 	
 mvloop:	
-	call ClearScreen
+	call WaitFrame	
+	ld a,7
+	call SetBorder
 	call CP_moveAll
-	call CP_infoAll
-	ld hl,2000
-	call DelayMS
+	call CP_plotAll
+	ld a,0
+	call SetBorder
 	jr mvloop
 ente:
 	jr ente

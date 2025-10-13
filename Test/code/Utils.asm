@@ -39,3 +39,61 @@ Random:
         pop     de
         pop     hl
         ret
+
+; ---------------------------------------------------------------------
+; Plot(hl: x,y)->():()
+PLT_BIT_TABLE:  defb 128,64,32,16,8,4,2,1
+Plot:
+    push af
+    push de
+    push hl
+    ; Y
+    ld a,l
+    and $07         ; which intra-line?
+    ld d,a          ; *256 (d is address highByte)
+    ld a,l
+    and $c0         ; which of the 3 regions?
+    rra
+    scf             ; base address, shifts to $40
+    rra
+    rra             ; 3 left instead of 5 right = * 2048
+    or d                
+    ld d,a          ; high byte ready
+    ld a,l
+    and $38         ; reset carry
+    rla             ; character-line * 32
+    rla
+    ld e,a          ; de is row byte address
+    ;
+    ; X
+    ld a,h          ; X
+    and $F8
+    rra
+    rra
+    rra
+    or e
+    ld e,a          ; byte address in de
+    ld a,h
+    and $07
+    push de
+    ld e,a
+    ld d,0
+    ld hl,PLT_BIT_TABLE
+    add hl,de
+    ld a,(hl)
+    pop hl          ; address in hl
+    or (hl)
+    ld (hl),a       ; plot.
+    ;
+    pop hl
+    pop de
+    pop af
+    ret
+
+
+
+
+
+
+
+

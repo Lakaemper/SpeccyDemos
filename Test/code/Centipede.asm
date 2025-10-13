@@ -1,12 +1,12 @@
 ; setup parameters
-CP_NUM_CENTIPEDES       EQU     4                                                       ; number of centipedes
+CP_NUM_CENTIPEDES       EQU     1                                                       ; number of centipedes
 CP_NUM_TAILSEGMENTS     EQU     4                                                       ; number of tail segments to be displayed
 CP_TAILSEGMENT_INTERVAL EQU     5                                                       ; interval between displayed tail segments
 CP_TAIL_LENGTH          EQU     CP_NUM_TAILSEGMENTS * CP_TAILSEGMENT_INTERVAL * 2       ; 2: x,y uint8, not 8.8!
 
 ; movement model parameters
 CP_ACC_UPDATE           EQU     10                                                      ; update interval for accelerator
-CP_SPEED_MAX            EQU     6                                                       ; max speed
+CP_SPEED_MAX            EQU     8                                                       ; max speed
 
 ; Struct centipede
 CP_POSHEAD      EQU     0
@@ -169,38 +169,34 @@ CP_move:
     push bc
     push IX
     ;
-    call CP_updateTail          ; returns structStart in hl    
+    call CP_updateTail          ; returns structStart in hl!   
     push hl
     pop IX
     ; test: update accelerator required?
     dec (IX+CP_ACC_COUNT)
     jr nz, cpmv_updateSpeed 
-    call ACC_update                         ; updates directly in struct !!! TODO    
+    call ACC_update                         ; updates directly in struct   
     ld (IX+CP_ACC_COUNT),CP_ACC_UPDATE      ; reset counter
     ;
 cpmv_updateSpeed:
-    ; speed update: speed += acc/4
-    ; create acc/4 in temp
-    push hl                     ; struct start -> (SP)
-    push hl                     ; twice
+    ; speed update: speed += acc    
+    push hl                     ; struct start -> (SP)    
+    push hl
     ld de,CP_ACC
-    add hl,de                   ; hl <- acc
-    ld de,V2_TEMPVECTOR
-    call Copy2D                 ; copy acc -> temp
-    ex de,hl                    ; hl: temp, de: Acc
-    call Div4_2D                ; temp = acc/4
-    ex (SP),hl                  ; (SP): acc/4, hl: struct start
+    add hl,de                   ; hl <- acc    
+    ex (SP),hl                  ; (SP): acc, hl: struct start
     ld de,CP_SPEED
     add hl,de                   ; hl <- speed
-    pop de                      ; de <- acc/4
-    call Sum2D                  ; speed += acc/4
+    pop de                      ; de <- acc
+    call Sum2D                  ; speed += acc
     ;
-    ; position update: pos += speed/4
+    ; position update: pos += speed/8
+    ; here: stack-> start, hl -> new speed
     ld de,V2_TEMPVECTOR
-    call Copy2D                 ; temp = speed (which now is speed + acc/4)
+    call Copy2D                 ; temp = speed (which is now speed + acc)
     ex (SP),hl                  ; struct start = POS in hl, (SP) = speed
     ex de,hl                    ; hl: speed (temp), de: pos
-    call Div4_2D                ; speed / 4
+    call Div8_2D                ; speed / 4
     ex de,hl
     push de                     ; memorize previous position in CP_TEMPVECTOR (for out of bounds check below)
     ld de,CP_TEMPVECTOR
@@ -265,14 +261,15 @@ cpmv_checkY:
     cp  b
     jr c,cpmv_okY               ; boundary y ok.
     ; check if posY inside [192,192+MAX_SPEED] corridor
-    ; (it's fine to check MAX_SPEED and not MAX_SPEED/4)
+    ; (it's fine to check MAX_SPEED and not MAX_SPEED/8)
     ld (IX+CP_ACC_COUNT),1            ; force acc update
     ld a,CP_SPEED_MAX
     add b    
+    dec b                       ; 191
     cp (hl)
-    jr nc,cpmv_setY192
+    jr nc,cpmv_setY191
     ld b,0
-cpmv_setY192:
+cpmv_setY191:
     ld (hl),b                   ; yHigh = 0 or 192
     xor a
     dec hl
@@ -305,4 +302,34 @@ cpma_lp1:
     call CP_move
     inc a
     djnz cpma_lp1    
+    ret
+
+; --------------------------------------------------------------------------------
+; CP_plot(a: idx)->():(de,hl)
+CP_plot:
+    push af
+    push bc
+    ;
+    call CP_getStructStart
+    inc hl
+    ld d,(hl)
+    inc hl
+    inc hl
+    ld e,(hl)
+    ex de,hl
+    call Plot
+    ;
+    pop bc
+    pop af
+    ret
+
+; --------------------------------------------------------------------------------
+; CP_plotAll()->():(af,b,de,hl)
+CP_plotAll:    
+    ld b,CP_NUM_CENTIPEDES
+    xor a
+cppa_lp1:        
+    call CP_plot
+    inc a
+    djnz cppa_lp1    
     ret
