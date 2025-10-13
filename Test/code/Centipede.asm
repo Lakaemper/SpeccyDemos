@@ -1,11 +1,11 @@
 ; setup parameters
-CP_NUM_CENTIPEDES       EQU     5                                                       ; number of centipedes
-CP_NUM_TAILSEGMENTS     EQU     4                                                       ; number of tail segments to be displayed
+CP_NUM_CENTIPEDES       EQU     6                                                    ; number of centipedes
+CP_NUM_TAILSEGMENTS     EQU     5                                                       ; number of tail segments to be displayed
 CP_TAILSEGMENT_INTERVAL EQU     5                                                       ; interval between displayed tail segments
 CP_TAIL_LENGTH          EQU     CP_NUM_TAILSEGMENTS * CP_TAILSEGMENT_INTERVAL * 2       ; 2: x,y uint8, not 8.8!
 
 ; movement model parameters
-CP_ACC_UPDATE           EQU     40                                                      ; update interval for accelerator
+CP_ACC_UPDATE           EQU     20                                                      ; update interval for accelerator
 CP_SPEED_MAX            EQU     16                                                       ; max speed
 
 ; Struct centipede
@@ -14,7 +14,8 @@ CP_SPEED        EQU     CP_POSHEAD + 4
 CP_ACC          EQU     CP_SPEED + 4
 CP_TAIL         EQU     CP_ACC + 4                                                      
 CP_ACC_COUNT    EQU     CP_TAIL + CP_TAIL_LENGTH
-CP_END          EQU     CP_ACC_COUNT + 1                                                ; END = length of structure
+CP_STATUS       EQU     CP_ACC_COUNT + 1                                            ; status bits: 0: initial round->0                 
+CP_END          EQU     CP_STATUS + 1                                               ; END = length of structure
 
 ; memory block for centipede states
 CENTIPEDES:     defs CP_END * CP_NUM_CENTIPEDES
@@ -211,12 +212,8 @@ cpmv_updateSpeed:
     call CompareToThresh2D
     jr c,cpmv_speedOK
     ;
-    ; trim speed
-    ld a,3
-    call SetBorder
-    call Trim2D   
-    ld a,0
-    call SetBorder 
+    ; trim speed    
+    call Trim2D       
     ;
     ; check if position is out of bounds
     ; X is complicated, it's always valid (0..255),
@@ -311,24 +308,54 @@ cpma_lp1:
 
 ; --------------------------------------------------------------------------------
 ; CP_plot(a: idx)->():(de,hl)
-CP_plot:
-    push af
+CP_plot:    
     push bc
+    push IX
     ;
     call CP_getStructStart
     push hl
+    pop IX
+    push hl
+    
     ; plot Tail pos
     ld de, CP_TAIL      ; tail is 1 byte per coordinate!
-    add hl,de
+    add hl,de           ; first tail segment erases head
     ld d,(hl)
     inc hl
     ld e,(hl)
+    bit 0,(IX+CP_STATUS)
+    jr z,cppl_plotHead
+    ;
+    push de
+    push af
+    ld a,d
+    ld d,e
+    ld e,a              ; swap d,e
+    srl d
+    srl d
+    srl d
+    srl e
+    srl e
+    srl e
+    call UpdateBackground
+    jr nc,cppl_unfinished
+    ;
+    ; here: all blue
+    ld a, 4
+    call SetBorder
+    ;
+ cppl_unfinished:
+    pop af
+    pop de
+    
+cppl_unplotHead:
     ex de,hl            ; hl = xy, de = tail[0]_y
-    call Plot 
+    call Plot           ; unplot head
     ex de,hl            ; hl = tail[0]_y  
     ;
-    ; plot
-    ex de,hl            ; hl = struct start (pos), (SP) = tail[0]_y    !!!!!!!!!!!!!HIER
+    ; plot head
+cppl_plotHead:
+    ex (SP),hl            ; hl = struct start (pos), (SP) = tail[0]_y 
     inc hl
     ld d,(hl)
     inc hl
@@ -340,15 +367,36 @@ CP_plot:
     ; plot tail segments
     ld b,CP_NUM_TAILSEGMENTS
     dec b               ; !!!
-
-
-    
-    
-    
-    
+    pop hl              ; hl = tail[0]_y
+    ld de,CP_TAILSEGMENT_INTERVAL
+    sla e               ; *2    
     ;
-    pop bc
-    pop af
+cppl_loop1:
+    add hl,de
+    push de
+    push hl
+    ld e,(hl)
+    dec hl
+    ld d,(hl)
+    bit 0,(IX+CP_STATUS)
+    jr z,cppl_plotSegment
+    ex de,hl
+    call plot           ; unplot (seg+1)
+    ex de,hl
+cppl_plotSegment:    
+    dec hl
+    ld e,(hl)
+    dec hl
+    ld d,(hl)
+    ex de,hl
+    call plot           ; plot seg
+    pop hl
+    pop de
+    djnz cppl_loop1    
+    ;
+    set 0,(IX+CP_STATUS)
+    pop IX
+    pop bc    
     ret
 
 ; --------------------------------------------------------------------------------

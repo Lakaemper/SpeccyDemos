@@ -20,15 +20,14 @@ Start:
 	call ClearScreen	
 	call CP_initAll		; init all centipedes
 	;call CP_infoAll		; print info
+	xor a
+	call SetBorder
+	call InitInkAttributes
 	
 mvloop:	
-	call WaitFrame	
-	ld a,7
-	call SetBorder
+	call WaitFrame		
 	call CP_moveAll
-	call CP_plotAll
-	ld a,0
-	call SetBorder
+	call CP_plotAll	
 	jr mvloop
 ente:
 	jr ente

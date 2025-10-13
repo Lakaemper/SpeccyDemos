@@ -5,31 +5,47 @@ ACC_REGION_SIZE     EQU     40      ; selection radius
 
 
 ; -------------------------------------------------------------
-; ACC_update(hl,IX: struct CP start)->():(af,bc,de)
+; ACC_update(hl,IX: struct CP start)->():()
 ACC_update:
     push af
     push bc
     push de
     push hl
-    ;
+    ;    
     ld de, CP_ACC
-    add hl,de
-    push hl
-    call Random
-    inc hl
+    add hl,de    
+    call Random                 ; random strength
     ld (hl),a
-    call Random
-    inc hl
-    inc hl
+    call random                 ; determine direction
+    sub 128
+    jr c, acc_posX
+    ld a,(hl)
+    cpl
     ld (hl),a
-    ld bc, $0050
-    pop hl
-    ld a,5
-    call SetBorder
-    call Trim2D
-    ld a,0
-    call SetBorder
+    inc hl
+    ld (hl),255
+    jr acc_doY
+acc_posX:    
+    inc hl
+    ld (hl),0
+acc_doY:        
+    inc hl
+    call Random
+    ld (hl),a
+    call random
+    cp 128
+    jr c, acc_posY
+    ld a,(hl)
+    cpl
+    ld (hl),a
+    inc hl
+    ld (hl),255
+    jr acc_done
+acc_posY:
+    inc hl
+    ld (hl),0    
     ; 
+acc_done:    
     pop hl
     pop de
     pop bc
