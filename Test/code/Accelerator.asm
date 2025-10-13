@@ -22,9 +22,13 @@ ACC_update:
     inc hl
     inc hl
     ld (hl),a
-    ld bc, $0100
+    ld bc, $0050
     pop hl
+    ld a,5
+    call SetBorder
     call Trim2D
+    ld a,0
+    call SetBorder
     ; 
     pop hl
     pop de

@@ -82,7 +82,7 @@ Plot:
     add hl,de
     ld a,(hl)
     pop hl          ; address in hl
-    or (hl)
+    xor (hl)
     ld (hl),a       ; plot.
     ;
     pop hl
@@ -90,6 +90,7 @@ Plot:
     pop af
     ret
 
+    
 
 
 

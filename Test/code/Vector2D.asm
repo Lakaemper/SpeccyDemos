@@ -252,7 +252,32 @@ Copy2D:
 	pop hl
 	pop de
 	ret
-	
+
+; ------------------------------------------------------------
+; Negate88_2D((hl): points to X)->():()
+; 2s complement of a single dimension (8.8)
+Negate88_2D:
+	push af
+	push de
+	;
+	ld a,(hl)
+	cpl
+	ld e,a
+	inc hl
+	ld a,(hl)
+	cpl
+	ld d,a
+	inc de
+	ld a,d
+	ld (hl),a
+	dec hl
+	ld a,e
+	ld (hl),a
+	;
+	pop de
+	pop af
+	ret
+
 ; ------------------------------------------------------------
 ; Trim2D((hl): vectorAdr, bc: thresh)->(hl: vectorAdr, carry):(af, bc, de, hl)
 ; Trim a 2D vector to length about (but smaller than) thresh
@@ -265,21 +290,21 @@ Copy2D:
 ; (always loops 4 times)
 ; use the last result < T
 ; (~ 3000T)
-Trim2D:		
+Trim2D:
 	call CompareToThresh2D	
 	ret c						; NO TRIMMING REQUIRED (carry set)
 	;
 	; Trimming required
 	; initialize with a vector below thresh
 	; divide by 2 until |vector| < T
-tr_init:		
+tr_init:	
 	call Div2_2D
 	call CompareToThresh2D
 	jr nc, tr_init			
 	; here: |V| < T	
 	ld de, V2_TEMPVECTOR
 	call Copy2D			; copy vector to temp
-	ld a,5				; loop 5-1=4 times max (1/2  + (1/4 + 1/8 + 1/16 + 1/32) )
+	ld a,2				; loop 5-1=4 times max (1/2  + (1/4 + 1/8 + 1/16 + 1/32) )   [changed to 2 from 5 !!!]
 tr_loop:
 	dec A
 	jr z, tr_end	

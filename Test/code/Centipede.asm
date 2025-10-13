@@ -1,12 +1,12 @@
 ; setup parameters
-CP_NUM_CENTIPEDES       EQU     1                                                       ; number of centipedes
+CP_NUM_CENTIPEDES       EQU     5                                                       ; number of centipedes
 CP_NUM_TAILSEGMENTS     EQU     4                                                       ; number of tail segments to be displayed
 CP_TAILSEGMENT_INTERVAL EQU     5                                                       ; interval between displayed tail segments
 CP_TAIL_LENGTH          EQU     CP_NUM_TAILSEGMENTS * CP_TAILSEGMENT_INTERVAL * 2       ; 2: x,y uint8, not 8.8!
 
 ; movement model parameters
-CP_ACC_UPDATE           EQU     10                                                      ; update interval for accelerator
-CP_SPEED_MAX            EQU     8                                                       ; max speed
+CP_ACC_UPDATE           EQU     40                                                      ; update interval for accelerator
+CP_SPEED_MAX            EQU     16                                                       ; max speed
 
 ; Struct centipede
 CP_POSHEAD      EQU     0
@@ -196,7 +196,7 @@ cpmv_updateSpeed:
     call Copy2D                 ; temp = speed (which is now speed + acc)
     ex (SP),hl                  ; struct start = POS in hl, (SP) = speed
     ex de,hl                    ; hl: speed (temp), de: pos
-    call Div8_2D                ; speed / 4
+    call Div8_2D                ; speed / 8
     ex de,hl
     push de                     ; memorize previous position in CP_TEMPVECTOR (for out of bounds check below)
     ld de,CP_TEMPVECTOR
@@ -212,7 +212,11 @@ cpmv_updateSpeed:
     jr c,cpmv_speedOK
     ;
     ; trim speed
-    call Trim2D    
+    ld a,3
+    call SetBorder
+    call Trim2D   
+    ld a,0
+    call SetBorder 
     ;
     ; check if position is out of bounds
     ; X is complicated, it's always valid (0..255),
@@ -224,15 +228,21 @@ cpmv_speedOK:
     inc hl
     ld a,(CP_TEMPVECTOR+1)
     xor (hl)
-    jp P, cpmv_checkY              ; both same bit 7: OK
+    jp P, cpmv_checkY               ; both same bit 7: OK
+    ld a,(hl)                       ; chack radius of 10 around 128. If in there: ok
+    cp 118                         
+    jr c, cpmv_checkX
+    cp 138
+    jr c, cpmv_checkY
     ;
     ; X out of bounds:
     ; reset x to either 0 or 255
     ; set x-speed to 0
     ; force acc update    
-    ld (IX+CP_ACC_COUNT),1
+cpmv_checkX:
+    ;ld (IX+CP_ACC_COUNT),1
     xor a                       ; get a zero
-    bit 7,(hl)                  ; new position < 128?
+    bit 7,(hl)                  ; new position > 128?
     jr nz,cpmv_setX0            ; yes, set to left boundary
     dec a                       ; a = 255 = right boundary
 cpmv_setX0:
@@ -243,10 +253,7 @@ cpmv_setX0:
     ld (hl),a                   ; x low byte->0
     ;
     ex (SP),hl                  ; hl = speed, (SP) = pos    
-    ld (hl),a                   ; speed X to zero
-    inc hl
-    ld (hl),a
-    dec hl
+    call Negate88_2D            ; speedX = - speedX
     ex (SP),hl                  ; hl = pos, (SP) = speed
     inc hl                      ; hl = pos+1
     ;
@@ -262,7 +269,7 @@ cpmv_checkY:
     jr c,cpmv_okY               ; boundary y ok.
     ; check if posY inside [192,192+MAX_SPEED] corridor
     ; (it's fine to check MAX_SPEED and not MAX_SPEED/8)
-    ld (IX+CP_ACC_COUNT),1            ; force acc update
+    ;ld (IX+CP_ACC_COUNT),1            ; force acc update
     ld a,CP_SPEED_MAX
     add b    
     dec b                       ; 191
@@ -278,9 +285,7 @@ cpmv_setY191:
     pop hl                      ; speed -> hl
     inc hl
     inc hl
-    ld (hl),a
-    inc hl
-    ld (hl),a
+    call Negate88_2D            ; speedY = -speedY
     push hl
     ;
 cpmv_okY:
@@ -311,6 +316,19 @@ CP_plot:
     push bc
     ;
     call CP_getStructStart
+    push hl
+    ; plot Tail pos
+    ld de, CP_TAIL      ; tail is 1 byte per coordinate!
+    add hl,de
+    ld d,(hl)
+    inc hl
+    ld e,(hl)
+    ex de,hl            ; hl = xy, de = tail[0]_y
+    call Plot 
+    ex de,hl            ; hl = tail[0]_y  
+    ;
+    ; plot
+    ex de,hl            ; hl = struct start (pos), (SP) = tail[0]_y    !!!!!!!!!!!!!HIER
     inc hl
     ld d,(hl)
     inc hl
@@ -318,6 +336,16 @@ CP_plot:
     ld e,(hl)
     ex de,hl
     call Plot
+    ;
+    ; plot tail segments
+    ld b,CP_NUM_TAILSEGMENTS
+    dec b               ; !!!
+
+
+    
+    
+    
+    
     ;
     pop bc
     pop af
