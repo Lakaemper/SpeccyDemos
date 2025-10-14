@@ -7,9 +7,9 @@ STACK_STORE         defw        0
 BASE_PATTERN:   defb      %11000111
                 defb      %10000011
                 defb      %00000001
-                defb      %00000001
-                defb      %00000001
-                defb      %10000011
+                defb      %00000101
+                defb      %00000101
+                defb      %10001011
                 defb      %11000111
                 defb      %11111111
 
@@ -21,12 +21,29 @@ InitScreen:
     DI
     push IX
 
-    ; attributes: red BG, black FG
-    ld bc, 767
-    ld hl, $5800
-    ld de, $5801
-    ld (hl),$18                 
-    LDIR
+    ld hl,COLOR_COUNTER
+    ld (HL),$03
+    inc hl
+    ld (hl),0
+
+    ; attributes: red or magenta BG, black FG
+    ld bc,768
+    ld hl,$5800
+lp:
+    call Random
+    and 4
+    jr z,iscr_1
+    ld (hl),$10
+    jr iscr_2
+iscr_1:
+    ld (hl),$18
+iscr_2:
+    inc hl
+    dec bc
+    ld a,b
+    or c
+    jr nz, lp
+
     ; 
     ; hires pattern
     ld (STACK_STORE),SP         ; save stack
@@ -75,20 +92,88 @@ iscr_lp2:
     ret
 
 ; ---------------------------------------------------------
-; ClearChar(e: col, d: row)->():()
-ClearChar:
-    ld hl,$4000
-
-
-
+; AnimateBG ()->():(af,bc,de,hl)
+; Change color of random background balls
+AnimateBG:
+    ld b,10                 ; 10 attempts
+    ; random in 0..767
+anm_loop:    
+    xor a
+    ld h,a
+    ld l,a
+    ld d,a    
+    call random
+    ld e,a
+    add hl,de
+    add hl,de
+    add hl,de
+    ld d,0
+    call Random
+    and $03
+    ld e,a
+    add hl,de
+    ld de,$5800
+    add hl,de
+    ;
+    ; check if BG non zero
+    ld a,(HL)
+    and $38
+    jr z,anm_nextAttempt
+    xor $08
+    ld (hl),a
+    ;
+anm_nextAttempt:
+    djnz anm_loop
+    ret
 
 ; ---------------------------------------------------------
-; UpdateBackground(e: col, d: row)->(zero flag):(af)
-; returns carry set if all cells are blue
-; Turns BG to blue
-UpdateBackground:     
+; ClearChar(e: col, d: row)->():()
+ClearChar:    
+    push af
     push de
     push hl
+    ;
+    ld a,d
+    and $18             ; segment 0-2
+    or $40              ; base address
+    ld h,a
+    ld a,d    
+    rrc a               ; row (in segment) * 32
+    rrc a
+    rrc a
+    and $E0
+    or e                ; col
+    ld l,a              ; hl = address
+    xor a
+    ld (hl),a
+    inc h
+    ld (hl),a
+    inc h
+    ld (hl),a
+    inc h
+    ld (hl),a
+    inc h
+    ld (hl),a
+    inc h
+    ld (hl),a
+    inc h
+    ld (hl),a
+    inc h
+    ld (hl),a
+    inc h
+    ;
+    pop hl
+    pop de
+    pop af
+    ret
+
+; ---------------------------------------------------------
+; UpdateBackground(e: col, d: row)->(carry flag):(af)
+; returns carry set if all cells are blue
+; Turns BG to Black, erases character
+UpdateBackground:     
+    push hl
+    push de
     ld h,$58
     ld l,e          ; base + col    
     sla d
@@ -104,7 +189,13 @@ UpdateBackground:
     ld a,(hl)        
     and $38         ; paper
     jr z, upbg_checkCellCounter        ; nothing to do
-upbg_randInk:
+    ;
+    ; Clear character in cell
+    pop de
+    push de    
+    call ClearChar    
+    ;
+upbg_randInk:         
     call Random     ; random ink
     and $07    
     jr z, upbg_randInk  ; non black ink, black paper    
@@ -125,8 +216,6 @@ upbg_randInk:
     jr nz,upbg_end
     scf                     ; all blue
     jr upbg_end
-
-
     ;
 upbg_checkCellCounter:    
     ld hl, COLOR_COUNTER
@@ -139,7 +228,7 @@ upbg_checkCellCounter:
     scf                     ; all blue    
     ;
 upbg_end:
-    pop hl
-    pop de    
+    pop de
+    pop hl    
     ret
     

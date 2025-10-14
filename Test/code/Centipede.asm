@@ -288,6 +288,18 @@ cpmv_setY191:
 cpmv_okY:
     pop hl    
     ;
+    ; update background
+    ld e,(IX+1)
+    ld d,(IX+3)
+    srl d
+    srl d
+    srl d
+    srl e
+    srl e
+    srl e
+    call UpdateBackground
+    jr nc,cpmv_end    
+    ;
 cpmv_end:
     pop IX
     pop bc
@@ -325,29 +337,7 @@ CP_plot:
     ld e,(hl)
     bit 0,(IX+CP_STATUS)
     jr z,cppl_plotHead
-    ;
-    push de
-    push af
-    ld a,d
-    ld d,e
-    ld e,a              ; swap d,e
-    srl d
-    srl d
-    srl d
-    srl e
-    srl e
-    srl e
-    call UpdateBackground
-    jr nc,cppl_unfinished
-    ;
-    ; here: all blue
-    ld a, 4
-    call SetBorder
-    ;
- cppl_unfinished:
-    pop af
-    pop de
-    
+    ;    
 cppl_unplotHead:
     ex de,hl            ; hl = xy, de = tail[0]_y
     call Plot           ; unplot head

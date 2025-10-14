@@ -16,19 +16,21 @@ VECTOR:		defs 4
 
 
 ; ====================================================
-Start:
+Start:	
+	call FrameSeedRandom
 	call ClearScreen	
-	call CP_initAll		; init all centipedes	
+	call CP_initAll		; init all centipedes		
+	call InitScreen
 	xor a
 	call SetBorder
-	call InitScreen
-	
+
 mvloop:	
-	call WaitFrame		
+	call WaitFrame			
 	call CP_moveAll
-	call CP_plotAll	
+	call CP_plotAll
+	call AnimateBG	
+	call ReadKeyRow
+	jr c,Start	
 	jr mvloop
-ente:
-	jr ente
 
 
