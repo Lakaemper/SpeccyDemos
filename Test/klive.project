@@ -6,12 +6,10 @@
     "screenFreq": "pal"
   },
   "clockMultiplier": 1,
-  "soundLevel": 0,
-  "soundMuted": true,
-  "savedSoundLevel": 0.8,
-  "media": {
-    "tape": ""
-  },
+  "soundLevel": 0.5,
+  "soundMuted": false,
+  "savedSoundLevel": 0.5,
+  "media": {},
   "machineSpecific": {},
   "ide": {
     "excludedProjectItems": []
@@ -51,46 +49,30 @@
       "documents": [
         {
           "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Test/code/Centipede.asm",
+          "id": "E:/GitCopies/SpeccyDemos/Test/code/Screen.asm",
           "position": {
-            "line": 2,
-            "column": 34
+            "line": 12,
+            "column": 33
           }
         },
         {
           "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Test/code/Utils.asm",
+          "id": "E:/GitCopies/SpeccyDemos/Test/code/Utils.asm",
           "position": {
-            "line": 92,
-            "column": 1
+            "line": 0,
+            "column": 0
           }
         },
         {
           "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Test/code/Accelerator.asm",
+          "id": "E:/GitCopies/SpeccyDemos/Test/code/code.kz80.asm",
           "position": {
-            "line": 36,
-            "column": 11
-          }
-        },
-        {
-          "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Test/code/code.kz80.asm",
-          "position": {
-            "line": 17,
-            "column": 1
-          }
-        },
-        {
-          "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Test/code/Screen.asm",
-          "position": {
-            "line": 60,
-            "column": 8
+            "line": 21,
+            "column": 40
           }
         }
       ],
-      "activeDocumentId": "C:/GitCopies/SpeccyDemos/Test/code/Screen.asm"
+      "activeDocumentId": "E:/GitCopies/SpeccyDemos/Test/code/Screen.asm"
     },
     "Memory": {
       "topIndex": 2084,

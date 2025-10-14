@@ -18,11 +18,10 @@ VECTOR:		defs 4
 ; ====================================================
 Start:
 	call ClearScreen	
-	call CP_initAll		; init all centipedes
-	;call CP_infoAll		; print info
+	call CP_initAll		; init all centipedes	
 	xor a
 	call SetBorder
-	call InitInkAttributes
+	call InitScreen
 	
 mvloop:	
 	call WaitFrame		
