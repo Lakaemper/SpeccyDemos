@@ -1,0 +1,85 @@
+{
+  "kliveVersion": "0.49.4",
+  "machineType": "sp48",
+  "modelId": "pal",
+  "config": {
+    "screenFreq": "pal"
+  },
+  "clockMultiplier": 1,
+  "soundLevel": 0,
+  "soundMuted": true,
+  "savedSoundLevel": 0.8,
+  "media": {
+    "tape": ""
+  },
+  "machineSpecific": {},
+  "ide": {
+    "excludedProjectItems": []
+  },
+  "viewOptions": {
+    "theme": "dark"
+  },
+  "debugger": {
+    "breakpoints": []
+  },
+  "builder": {
+    "roots": [
+      "code/code.kz80.asm"
+    ]
+  },
+  "exportDialog": {
+    "formatId": "tap",
+    "exportName": "Animation.tap",
+    "exportFolder": "E:\\MyPrograms",
+    "programName": "Demo00",
+    "screenFilename": "",
+    "startBlock": true,
+    "addClear": true,
+    "addPause": false,
+    "singleBlock": false,
+    "startAddress": "32768"
+  },
+  "workspaceSettings": {
+    "docsWorkspace": {
+      "documents": [
+        {
+          "type": "CodeEditor",
+          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm",
+          "position": {
+            "line": 16,
+            "column": 13
+          }
+        },
+        {
+          "type": "CodeEditor",
+          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/AnimationData.asm",
+          "position": {
+            "line": 186,
+            "column": 51
+          }
+        }
+      ],
+      "activeDocumentId": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm"
+    },
+    "Memory": {
+      "topIndex": 2084,
+      "isFullView": true,
+      "currentSegment": 0,
+      "decimalView": false,
+      "twoColumns": true,
+      "charDump": true,
+      "bankLabel": true
+    },
+    "Disassembly": {
+      "topAddress": 33299,
+      "isFullView": true,
+      "currentSegment": 0,
+      "decimalView": false,
+      "bankLabel": true,
+      "autoRefresh": true,
+      "ram": true,
+      "screen": false,
+      "disassOffset": 0
+    }
+  }
+}
