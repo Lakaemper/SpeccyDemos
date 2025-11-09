@@ -22,3 +22,36 @@ Random:
         pop     de
         pop     hl
         ret
+
+; ---------------------------------------------------------------------
+UTILS_STACK_SAVE:       dw 0
+CLS:
+        push bc
+        push hl
+        ld (UTILS_STACK_SAVE),SP
+        ld SP,$5800
+        ld hl,0
+        ld b,192
+loop:        
+        push hl         ; 16 pushes
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        djnz loop
+        ;
+        ld SP,(UTILS_STACK_SAVE)
+        pop hl
+        pop bc
+        ret   

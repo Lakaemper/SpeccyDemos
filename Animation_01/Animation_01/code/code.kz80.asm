@@ -9,6 +9,10 @@ Start:
 
 start1:
     DI
+
+loop0:
+    call CLS
+    ld b,200
 loop1:
     call Random
     ld h,a
@@ -26,10 +30,11 @@ lp2:
     ld e,a
     ;    
     or 255
+    push bc
     call DrawLine
-    jr loop1
-
-
+    pop bc
+    djnz loop1
+    jr loop0
 
 
 
