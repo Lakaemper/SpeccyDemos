@@ -46,16 +46,16 @@
           "type": "CodeEditor",
           "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm",
           "position": {
-            "line": 16,
-            "column": 13
+            "line": 7,
+            "column": 30
           }
         },
         {
           "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/AnimationData.asm",
+          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm",
           "position": {
-            "line": 186,
-            "column": 51
+            "line": 226,
+            "column": 15
           }
         }
       ],

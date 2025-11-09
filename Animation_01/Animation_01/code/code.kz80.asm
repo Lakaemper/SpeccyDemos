@@ -4,12 +4,26 @@ Start:
     jp start1
 
     #include "AnimationData.asm"
- 
+    #include "LineDrawer.asm"
 
 
 
 
 start1:
+    ld de,$0000
+    ld hl,$F080
+    xor a
+    call DrawLine
+
+enteLippens:
+    jr enteLippens
+
+
+
+
+
+
+
     ld hl,HUMAN_00
     ld b,12    
 humanLoop:    
