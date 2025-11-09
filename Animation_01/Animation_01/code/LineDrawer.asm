@@ -25,12 +25,17 @@ DrawLine:
         ; Start of draw line routine
 dl_start:                     
         ; Truncate y1, y2 to max 191
+        ld b,191
         ld a,e
-        and $3f
-        ld e,a
+        cp b
+        jr c, dl_x1OK
+        ld e,b
+dl_x1OK:
         ld a,l
-        and $3f
-        ld l,a
+        cp b
+        jr c,dl_x2OK
+        ld l,b
+dl_x2OK:
         ;
         ; start = end? => plot and leave
         push hl
@@ -145,10 +150,13 @@ dl_bresenham:
         ; if err < T: same line
         bit 7,h                 ; negative?
         jr nz, dl_belowThresh
-        ; the threshold for a line jump is T=dx/2 (int division!)
+        ld a,h                  ; positive. err > 255?
+        and a
+        jr nz, dl_geqThresh     ; yes
+        ; the threshold for a line jump is T=dx/2 (int division!)        
         ld a,b
         srl a                   ; dx/2
-        cp l                    ; err low byte (err cannot be >255. it's 16 bit because of SIGN)
+        cp l                    ; err low byte.
         jr c, dl_geqThresh
         ;jr z, dl_geqThresh
         ;
@@ -186,27 +194,91 @@ dl_endBresenham:
         ;
 ; the following routines handle the different octant cases
 ; they are reached by the modified jump routines
-        ; Octant 7
+;
+; Octant 4 - - - - - - -
 dl_oct4_belowT:
+        exx        
+        rl c                    ; move left
+        ld a,d                  
+        jr c,dl_o4_prevByte     ; -> proceed to new byte        
+        or c                    ; stay in same byte: plot c into pattern d
+        ld d,a
+        jr dl_continueLoop
+dl_o4_prevByte:
+        rl c                    ; set bit 0
+        or (hl)                 ; purge pattern into screen
+        ld(hl),a
+        ld d,c                  ; init new pattern
+        dec hl                  ; next byte same row        
+        jp dl_continueLoop
+        ;
 dl_oct4_geqT:
+        exx
+        ld a,d                  ; purge pattern into screen
+        or (hl)
+        ld (hl),a
+        ;
+        call NextLine
+        ;
+        rl c 
+        ld d,c       
+        jr nc,dl_continueLoop        
+        rl c
+        ld d,c
+        dec hl
+        jp dl_continueLoop
+
+; Octant 5 - - - - - - -
 dl_oct5_belowT:
 dl_oct5_geqT:
+;
+; Octant 6 - - - - - - -
 dl_oct6_belowT:
-dl_oct6_geqT:
+        exx        
+        srl c                   ; move right
+        ld a,d                  
+        jr c,dl_o6_nextByte     ; -> proceed to new byte        
+        or c                    ; stay in same byte: plot c into pattern d
+        ld d,a
+        jr dl_continueLoop
+dl_o6_nextByte:
+        rr c                    ; set bit 7        
+        or (hl)                 ; purge pattern into screen
+        ld(hl),a
+        ld d,c                  ; init new pattern
+        inc hl                  ; next byte same row        
+        jp dl_continueLoop
         ;
+dl_oct6_geqT:
+        exx
+        ld a,d                  ; purge pattern into screen
+        or (hl)
+        ld (hl),a
+        ;
+        call NextLine
+        ;
+        srl c 
+        ld d,c       
+        jr nc,dl_continueLoop        
+        rr c
+        ld d,c
+        inc hl
+        jp dl_continueLoop
+;
+; Octant 7 - - - - - - -
 dl_oct7_belowT:
         exx        
         srl c                   ; move right
-        jr c,dl_nextByte        ; -> proceed to new byte
-        ld a,d                  ; stay in same byte: plot into pattern
-        or c
+        ld a,d                  
+        jr c,dl_o7_nextByte     ; -> proceed to new byte        
+        or c                    ; stay in same byte: plot c into pattern d
         ld d,a
         jr dl_continueLoop
-dl_nextByte:
-        rr c                    ; set bit 7
-        ld d,c
+dl_o7_nextByte:
+        rr c                    ; set bit 7        
         or (hl)                 ; purge pattern into screen
         ld(hl),a
+        ld d,c                  ; init new pattern
         inc hl                  ; next byte same row        
         jp dl_continueLoop
         ;
@@ -231,15 +303,25 @@ dl_oct7_geqT:
 ; NextLine(hl: current address)->(hl: next address):(af,hl)
 NextLine:
         inc h
-        bit 3,h
-        ret z       ; intra character position
+        ld a,h
+        and $07        
+        ret nz      ; intra character position
         ;
         ld a,l
-        add 32      ; character boundary
+        cp $e0      ; intra region?
+        jr c,dl_intraRegion
+        ; region transition. the high byte is already ok, erase the 
+        ; low byte row-bits
+        and $1f     
         ld l,a
-        ret c       ; same region
+        ret
         ;
-        res 3,h     ; region transition
+dl_intraRegion:
+        add $20         ; next char-row
+        ld l,a
+        ld a,h
+        sub $08         ; reverse overflow from inc h above
+        ld h,a
         ret
 
 ; ---------------------------------------------------------------------

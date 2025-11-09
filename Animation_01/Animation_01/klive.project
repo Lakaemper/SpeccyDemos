@@ -46,20 +46,20 @@
           "type": "CodeEditor",
           "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm",
           "position": {
-            "line": 7,
-            "column": 30
+            "line": 14,
+            "column": 14
           }
         },
         {
           "type": "CodeEditor",
           "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm",
           "position": {
-            "line": 226,
+            "line": 157,
             "column": 15
           }
         }
       ],
-      "activeDocumentId": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm"
+      "activeDocumentId": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm"
     },
     "Memory": {
       "topIndex": 2084,

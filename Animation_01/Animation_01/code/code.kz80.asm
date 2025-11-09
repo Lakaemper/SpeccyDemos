@@ -10,10 +10,20 @@ Start:
 
 
 start1:
-    ld de,$0000
-    ld hl,$F080
+    ld de,$FF00
+    ld hl,$0000
+lp:
     xor a
+    push de
+    push hl
     call DrawLine
+    pop hl
+    pop de
+    inc l
+    ld a,l
+    cp 192
+    jr c,lp
+
 
 enteLippens:
     jr enteLippens
