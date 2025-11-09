@@ -100,10 +100,16 @@ dl_oct4:
 dl_oct5:
         ; Octant 5
         ld hl, DL_JUMP_TABLE + 4
+        ld a,b
+        ld b,c
+        ld c,a              ; swap dx,dy
         jr dl_jtOK
 dl_oct6:
         ; Octant 6
         ld hl, DL_JUMP_TABLE + 8
+        ld a,b
+        ld b,c
+        ld c,a              ; swap dx,dy
         jr dl_jtOK
 dl_oct7:
         ; Octant 7
@@ -230,40 +236,51 @@ dl_oct4_geqT:
 
 ; Octant 5 - - - - - - -
 dl_oct5_belowT:
+        exx        
+        ld a,(HL)               ; purge and go to next line
+        or c
+        ld (hl),a
+        call NextLine
+        jr dl_continueLoop
+        ;        
 dl_oct5_geqT:
+        exx
+        ld a,(hl)               ; purge
+        or c
+        ld (hl),a
+        call NextLine           ; next line
+        ;
+        rl c                    ; move left
+        ld d,c                  ; d is only for the last plot. A bit of a waste :-)
+        jr nc,dl_continueLoop        
+        rl c                            
+        dec hl
+        ld d,c
+        jp dl_continueLoop      ; one byte to the left
 ;
 ; Octant 6 - - - - - - -
 dl_oct6_belowT:
         exx        
-        srl c                   ; move right
-        ld a,d                  
-        jr c,dl_o6_nextByte     ; -> proceed to new byte        
-        or c                    ; stay in same byte: plot c into pattern d
-        ld d,a
+        ld a,(HL)               ; purge and go to next line
+        or c
+        ld (hl),a
+        call NextLine
         jr dl_continueLoop
-dl_o6_nextByte:
-        rr c                    ; set bit 7        
-        or (hl)                 ; purge pattern into screen
-        ld(hl),a
-        ld d,c                  ; init new pattern
-        inc hl                  ; next byte same row        
-        jp dl_continueLoop
-        ;
+        ;        
 dl_oct6_geqT:
         exx
-        ld a,d                  ; purge pattern into screen
-        or (hl)
+        ld a,(hl)                ; purge
+        or c
         ld (hl),a
+        call NextLine           ; next line
         ;
-        call NextLine
-        ;
-        srl c 
-        ld d,c       
+        srl c                   ; move right        
+        ld d,c                  ; d is only for the last plot. A bit of a waste :-)
         jr nc,dl_continueLoop        
-        rr c
-        ld d,c
+        rr c                            
         inc hl
-        jp dl_continueLoop
+        ld d,c
+        jp dl_continueLoop      ; one byte to the right
 ;
 ; Octant 7 - - - - - - -
 dl_oct7_belowT:
@@ -292,7 +309,7 @@ dl_oct7_geqT:
         ;
         srl c 
         ld d,c       
-        jr nc,dl_continueLoop        
+        jp nc,dl_continueLoop        
         rr c
         ld d,c
         inc hl

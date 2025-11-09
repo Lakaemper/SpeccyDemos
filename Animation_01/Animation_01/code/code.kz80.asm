@@ -5,30 +5,29 @@ Start:
 
     #include "AnimationData.asm"
     #include "LineDrawer.asm"
-
-
-
+    #include "Utils.asm"
 
 start1:
-    ld de,$FF00
-    ld hl,$0000
-lp:
-    xor a
-    push de
-    push hl
-    call DrawLine
-    pop hl
-    pop de
-    inc l
-    ld a,l
+    DI
+loop1:
+    call Random
+    ld h,a
+    call Random
+    ld d,a
+lp1:
+    call Random
     cp 192
-    jr c,lp
-
-
-enteLippens:
-    jr enteLippens
-
-
+    jr nc,lp1
+    ld l,a
+lp2:
+    call Random
+    cp 192
+    jr nc,lp2
+    ld e,a
+    ;    
+    or 255
+    call DrawLine
+    jr loop1
 
 
 
