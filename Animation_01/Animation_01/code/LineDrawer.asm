@@ -1,16 +1,26 @@
 ; ------------------------------------------------------
 ; Implementation of Bresenham's Line Drawing Algorithm
 ; ------------------------------------------------------
-; DrawLine(de->(x1,y1), hl->(x2,y2), a=0: make interrupt safe)->():(?)
-IRFLAG:         defb 0              ; Flag if routine was made interrupt safe
+; DrawLine(de->(x1,y1), hl->(x2,y2), a=0: make interrupt-safe)->():(?)
+;
+; Flag for differnt modes
+; bit 0: make routine interrupt-safe
+; bit 1: save final screen address and bit pattern
+; bit 2: skip screen address and bit pattern computation
+; bit 3: use xor instead of or for plotting
+INPUT_FLAG:     defb 0              
+; (precomputed) plotting parameters
+; these will be stored and used if flag bit 1,2 are set accordingly
+SCREEN_ADDRESS: defw 0
+BIT_PATTERN:    defb 0 
 ; jump addresses for conditional jumps to handle different octants
 DL_JUMP_TABLE:  defw dl_oct4_belowT, dl_oct4_geqT, dl_oct5_belowT, dl_oct5_geqT
                 defw dl_oct6_belowT, dl_oct6_geqT, dl_oct7_belowT, dl_oct7_geqT
 DL_TEMP_STACK:  defw 0
 DrawLine:
-        ld (IRFLAG),a
-        and a
-        jr nz,dl_start
+        ld (INPUT_FLAG),a
+        bit 0,a                 ; skip interrupt-safety?
+        jr nz,dl_testModificationFlag    ; -> yes
         ; if interrupt on call was enabled, 
         ; save registers (debug mode with ROM routines enabled)
         DI        
@@ -21,6 +31,9 @@ DrawLine:
         push IX
         push IY
         exx
+dl_testModificationFlag:
+        ; modify plot code according to bit 3 in INPUT_FLAG        
+        ;call ModifyPlotCode
         ;        
         ; Start of draw line routine
 dl_start:                     
@@ -49,7 +62,7 @@ dl_x2OK:
         ; Plot single dot
         call GetStartPattern
         ld d,a
-        jr dl_endBresenham
+        jp dl_endBresenham
         ;
 dl_realLine:
         ; make sure to draw direction down (y2 >= y1)
@@ -126,10 +139,18 @@ dl_jtOK:
         ; determine initial screen byte, bit and pattern
         ; after this, the absolute x,y coordinates are not 
         ; of importance anymore. The algorithm is relative
-        ; to the start pattern, abs(dx), abs(dy) and the octant
+        ; to the start pattern, abs(dx), abs(dy) and the octant        
         pop hl                  ; start address (x,y) in hl                
-        call GetStartPattern    ; screen address in hl, bit pattern in a        
-        ld d,a                  ; initial plot pattern
+        ld a,(INPUT_FLAG)
+        bit 2,a                 ; skip computation?
+        jr nz,dl_skipScreenComp ; -> yes
+        call GetStartPattern  ; no, compute: screen address in hl, bit pattern in a        
+        jr dl_plotPatternOK
+dl_skipScreenComp:
+        ld hl,(SCREEN_ADDRESS)  ; retrieve: screen address in hl, bit pattern in a        
+        ld a,(BIT_PATTERN)
+dl_plotPatternOK:
+        ld d,a                  ; initial plot bit
         push bc                 ; save dx,dy
         ld a,b                  ; set counter = max(dx,dy)+1
         cp c                   
@@ -182,12 +203,20 @@ dl_continueLoop:
         ; b is counter
         djnz dl_bresenham       ; are we there yet? no->loop
 dl_endBresenham:        
-        ld a,(hl)               ; plot final pattern
-        or d
+        ld a,d                  ; plot final pattern
+dl_MOD00: or (hl)                 ; WILL BE MODIFIED (xor/or)
         ld (hl),a        
-        ld a,(IRFLAG)
-        and a
-        ret nz
+        ld a,(INPUT_FLAG)
+        bit 1,a                 ; store final address and pattern?
+        jr z, dl_noPatternStore
+        ld (SCREEN_ADDRESS),hl
+        ld b,a
+        ld a,c
+        ld (BIT_PATTERN),a
+        ld a,b
+dl_noPatternStore:
+        and $01                 ; interrupt safe mode?
+        ret nz                  ; -> no
         ;
         pop IY
         pop IX
@@ -212,16 +241,16 @@ dl_oct4_belowT:
         jr dl_continueLoop
 dl_o4_prevByte:
         rl c                    ; set bit 0
-        or (hl)                 ; purge pattern into screen
-        ld(hl),a
+dl_MOD01: or (hl)               ; purge pattern into screen WILL BE MODIFIED
+        ld (hl),a
         ld d,c                  ; init new pattern
         dec hl                  ; next byte same row        
         jp dl_continueLoop
         ;
 dl_oct4_geqT:
         exx
-        ld a,d                  ; purge pattern into screen
-        or (hl)
+        ld a,d                  
+dl_MOD02: or (hl)               ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         ;
         call NextLine
@@ -237,16 +266,16 @@ dl_oct4_geqT:
 ; Octant 5 - - - - - - -
 dl_oct5_belowT:
         exx        
-        ld a,(HL)               ; purge and go to next line
-        or c
+        ld a,c               ; purge and go to next line
+dl_MOD03: or (hl)            ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         call NextLine
         jr dl_continueLoop
         ;        
 dl_oct5_geqT:
         exx
-        ld a,(hl)               ; purge
-        or c
+        ld a,c               ; purge
+dl_MOD04: or (hl)            ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         call NextLine           ; next line
         ;
@@ -261,16 +290,16 @@ dl_oct5_geqT:
 ; Octant 6 - - - - - - -
 dl_oct6_belowT:
         exx        
-        ld a,(HL)               ; purge and go to next line
-        or c
+        ld a,c               ; purge and go to next line
+dl_MOD05: or (hl)               ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         call NextLine
         jr dl_continueLoop
         ;        
 dl_oct6_geqT:
         exx
-        ld a,(hl)                ; purge
-        or c
+        ld a,c                ; purge
+dl_MOD06: or (hl)               ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         call NextLine           ; next line
         ;
@@ -290,10 +319,10 @@ dl_oct7_belowT:
         jr c,dl_o7_nextByte     ; -> proceed to new byte        
         or c                    ; stay in same byte: plot c into pattern d
         ld d,a
-        jr dl_continueLoop
+        jp dl_continueLoop
 dl_o7_nextByte:
         rr c                    ; set bit 7        
-        or (hl)                 ; purge pattern into screen
+dl_MOD07: or (hl)               ; purge pattern into screen WILL BE MODIFIED
         ld(hl),a
         ld d,c                  ; init new pattern
         inc hl                  ; next byte same row        
@@ -302,7 +331,7 @@ dl_o7_nextByte:
 dl_oct7_geqT:
         exx
         ld a,d                  ; purge pattern into screen
-        or (hl)
+dl_MOD08: or (hl)               ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         ;
         call NextLine
@@ -314,6 +343,30 @@ dl_oct7_geqT:
         ld d,c
         inc hl
         jp dl_continueLoop
+
+; ---------------------------------------------------------------------
+; ModifyPlotCode(A: modificationflag)->():(af,b)
+; Modifies the DrawLine code: for screen-plotting, xor/or is used depending
+; on bit 1 of the MODE flag
+MODTABLE: defw dl_MOD00,dl_MOD01,dl_MOD02,dl_MOD03,dl_MOD04,dl_MOD05,dl_MOD06,dl_MOD07,dl_MOD08
+ModifyPlotCode:        
+        push hl        
+        and $08                 ; test modification bit
+        ld a,$B6                ; opcode "or (HL)" (for bit = 0)
+        jr z, dl_opcodeOK
+        ld a, $AE               ; opcode "xor (HL)" (for bit = 1)
+dl_opcodeOK:
+        ld b,9                  ; number of modifications
+        ld (DL_TEMP_STACK),SP
+        ld SP,MODTABLE
+dl_modificationLoop:
+        pop hl                  ; modification address
+        ld (hl),a               ; opcode -> address        
+        djnz dl_modificationLoop
+        ;
+        ld SP,(DL_TEMP_STACK)
+        pop hl
+        ret
 
 ; ---------------------------------------------------------------------
 ; Compute screen address of byte below (hl)

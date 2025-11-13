@@ -6,11 +6,11 @@
     "screenFreq": "pal"
   },
   "clockMultiplier": 1,
-  "soundLevel": 0,
-  "soundMuted": true,
-  "savedSoundLevel": 0.8,
+  "soundLevel": 0.5,
+  "soundMuted": false,
+  "savedSoundLevel": 0.5,
   "media": {
-    "tape": ""
+    "sdCard": "C:\\Users\\rlaka\\Klive\\ks2.cim"
   },
   "machineSpecific": {},
   "ide": {
@@ -51,46 +51,14 @@
       "documents": [
         {
           "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Test/code/code.kz80.asm",
+          "id": "E:/GitCopies/SpeccyDemos/Test/code/Centipede.asm",
           "position": {
-            "line": 31,
-            "column": 2
-          }
-        },
-        {
-          "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Test/code/Screen.asm",
-          "position": {
-            "line": 125,
-            "column": 1
-          }
-        },
-        {
-          "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Test/code/Centipede.asm",
-          "position": {
-            "line": 49,
-            "column": 14
-          }
-        },
-        {
-          "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Test/code/Utils.asm",
-          "position": {
-            "line": 102,
-            "column": 17
-          }
-        },
-        {
-          "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Test/code/UtilsDBG.asm",
-          "position": {
-            "line": 151,
-            "column": 17
+            "line": 0,
+            "column": 0
           }
         }
       ],
-      "activeDocumentId": "C:/GitCopies/SpeccyDemos/Test/code/Screen.asm"
+      "activeDocumentId": "E:/GitCopies/SpeccyDemos/Test/code/Centipede.asm"
     },
     "Memory": {
       "topIndex": 2084,

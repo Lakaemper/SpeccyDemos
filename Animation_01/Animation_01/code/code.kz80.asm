@@ -7,15 +7,50 @@ Start:
     #include "LineDrawer.asm"
     #include "Utils.asm"
 
+MODE:   defb 0
 start1:
-    DI
 
+    ld de,$1414
+    ld hl,$2020
+    ld a,$03
+    call DrawLine
+    
+
+    ld de,$2020
+    ld hl,$2050
+    ld a,$07
+    call DrawLine
+    jr start1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    DI
+    ld a,$03        ; drawmode
+    ld (MODE),a
+    ;
 loop0:
     call CLS
     ld b,200
 loop1:
     call Random
     ld h,a
+    ;
+    ld a,(MODE)
+    cp $03
+    jr nz, lp1
+    ;
     call Random
     ld d,a
 lp1:
@@ -23,21 +58,29 @@ lp1:
     cp 192
     jr nc,lp1
     ld l,a
-lp2:
+    ld a,(MODE)
+    cp $03
+    jr nz,keepDE
+lp2:    
     call Random
     cp 192
     jr nc,lp2
     ld e,a
     ;    
-    or 255
+keepDE:        
+    ld a,(MODE)    
     push bc
+    push hl        
     call DrawLine
+    pop de
     pop bc
+    ld a,$07
+    ld (MODE),a
     djnz loop1
     jr loop0
-
-
-
+    ;
+    ;
+    ;------------------
     ld hl,HUMAN_00
     ld b,12    
 humanLoop:    
@@ -82,7 +125,7 @@ wait:
     pop bc
     djnz humanLoop
 ente:
-    jr start1
+    jp start1
 
 
 ; ------------------------------------------

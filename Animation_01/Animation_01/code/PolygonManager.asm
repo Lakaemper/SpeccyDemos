@@ -1,8 +1,14 @@
 PM_MEM_START:           equ $F000
 ; Mem: order:
 ;   Address Table
+;       *poly0
+;       *poly1
+;       ...
 ;   Polygons
-;       len
+;       *prev
+;       *next
+;       *endOfPoly
+;       numVertices
 ;       trans x,y
 ;       rot dd
 ;       x,y,x,y,.. (signed byte)    orig data
@@ -17,13 +23,32 @@ PM_ADDRESS_TABLE:       defw 0
 ; -------------------------------------------------------------------
 PM_init:
     ld (PM_MAX_POLYGONS),a
+    ld (PM_NEXT_POLY_ID),0    
     ld hl,PM_MEM_START
     ld PM_ADDRESS_TABLE, hl         ; address table sits at start of mem area
+    push hl
     ld e,a
     ld d,0
     add hl,de
     add hl,de                       ; first (= next) poly sits directly behind address table
     ld (PM_NEXT_POLY_ADDR),hl
+    pop hl
+    ;
+    ; clear table
+    ld (hl),0
+    inc hl
+    ld(hl),0    
+    ld d,h
+    ld e,l
+    inc de
+    dec hl
+    ld c,a
+    dec c
+    ld b,0
+    sla c
+    rlc b
+    LDIR
+    ;
     ret
 
 ; -------------------------------------------------------------------
@@ -31,7 +56,7 @@ PM_init:
 PM_create:
     ; check if there's vacancy
     ld a,PM_NEXT_POLY_ID
-    cp (PM_MAX_POLYGONS)
+    cp (PM_MAX_POLYGONS)    
     ret nc
     ;
     ; add to table
