@@ -8,6 +8,7 @@
 ; bit 1: save final screen address and bit pattern
 ; bit 2: skip screen address and bit pattern computation
 ; bit 3: use xor instead of or for plotting
+; bit 4: omit last point (important for polygons in xor mode)
 INPUT_FLAG:     defb 0              
 ; (precomputed) plotting parameters
 ; these will be stored and used if flag bit 1,2 are set accordingly
@@ -33,7 +34,7 @@ DrawLine:
         exx
 dl_testModificationFlag:
         ; modify plot code according to bit 3 in INPUT_FLAG        
-        ;call ModifyPlotCode
+        call ModifyPlotCode
         ;        
         ; Start of draw line routine
 dl_start:                     
@@ -150,7 +151,7 @@ dl_skipScreenComp:
         ld hl,(SCREEN_ADDRESS)  ; retrieve: screen address in hl, bit pattern in a        
         ld a,(BIT_PATTERN)
 dl_plotPatternOK:
-        ld d,a                  ; initial plot bit
+        ld d,a                  ; initial plot bit        
         push bc                 ; save dx,dy
         ld a,b                  ; set counter = max(dx,dy)+1
         cp c                   
@@ -202,20 +203,23 @@ dl_continueLoop:
         ; currently, the alternative register set is active
         ; b is counter
         djnz dl_bresenham       ; are we there yet? no->loop
+        ;
 dl_endBresenham:        
-        ld a,d                  ; plot final pattern
-dl_MOD00: or (hl)                 ; WILL BE MODIFIED (xor/or)
-        ld (hl),a        
         ld a,(INPUT_FLAG)
-        bit 1,a                 ; store final address and pattern?
-        jr z, dl_noPatternStore
-        ld (SCREEN_ADDRESS),hl
         ld b,a
+        bit 4,b
+        jr nz,dl_skipLast        
+        ld a,d                  ; plot final pattern
+dl_MOD00: nop               ; WILL BE MODIFIED (xor/or)
+        ld (hl),a                
+dl_skipLast:
+        bit 1,b                 ; store final address and pattern?
+        jr z, dl_noPatternStore
+        ld (SCREEN_ADDRESS),hl        
         ld a,c
-        ld (BIT_PATTERN),a
-        ld a,b
+        ld (BIT_PATTERN),a        
 dl_noPatternStore:
-        and $01                 ; interrupt safe mode?
+        bit 0,b                 ; interrupt-safe mode?
         ret nz                  ; -> no
         ;
         pop IY
@@ -250,7 +254,7 @@ dl_MOD01: or (hl)               ; purge pattern into screen WILL BE MODIFIED
 dl_oct4_geqT:
         exx
         ld a,d                  
-dl_MOD02: or (hl)               ; purge pattern into screen WILL BE MODIFIED
+dl_MOD02: nop               ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         ;
         call NextLine
@@ -275,7 +279,7 @@ dl_MOD03: or (hl)            ; purge pattern into screen WILL BE MODIFIED
 dl_oct5_geqT:
         exx
         ld a,c               ; purge
-dl_MOD04: or (hl)            ; purge pattern into screen WILL BE MODIFIED
+dl_MOD04: nop            ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         call NextLine           ; next line
         ;
@@ -291,7 +295,7 @@ dl_MOD04: or (hl)            ; purge pattern into screen WILL BE MODIFIED
 dl_oct6_belowT:
         exx        
         ld a,c               ; purge and go to next line
-dl_MOD05: or (hl)               ; purge pattern into screen WILL BE MODIFIED
+dl_MOD05: nop               ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         call NextLine
         jr dl_continueLoop
@@ -299,7 +303,7 @@ dl_MOD05: or (hl)               ; purge pattern into screen WILL BE MODIFIED
 dl_oct6_geqT:
         exx
         ld a,c                ; purge
-dl_MOD06: or (hl)               ; purge pattern into screen WILL BE MODIFIED
+dl_MOD06: nop               ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         call NextLine           ; next line
         ;
@@ -322,7 +326,7 @@ dl_oct7_belowT:
         jp dl_continueLoop
 dl_o7_nextByte:
         rr c                    ; set bit 7        
-dl_MOD07: or (hl)               ; purge pattern into screen WILL BE MODIFIED
+dl_MOD07: nop               ; purge pattern into screen WILL BE MODIFIED
         ld(hl),a
         ld d,c                  ; init new pattern
         inc hl                  ; next byte same row        
@@ -331,7 +335,7 @@ dl_MOD07: or (hl)               ; purge pattern into screen WILL BE MODIFIED
 dl_oct7_geqT:
         exx
         ld a,d                  ; purge pattern into screen
-dl_MOD08: or (hl)               ; purge pattern into screen WILL BE MODIFIED
+dl_MOD08: nop               ; purge pattern into screen WILL BE MODIFIED
         ld (hl),a
         ;
         call NextLine

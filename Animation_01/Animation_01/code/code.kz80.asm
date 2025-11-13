@@ -6,76 +6,34 @@ Start:
     #include "AnimationData.asm"
     #include "LineDrawer.asm"
     #include "Utils.asm"
-
-MODE:   defb 0
-start1:
-
-    ld de,$1414
-    ld hl,$2020
-    ld a,$03
-    call DrawLine
+    #include "Polygon.asm"
     
-
-    ld de,$2020
-    ld hl,$2050
-    ld a,$07
-    call DrawLine
-    jr start1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    DI
-    ld a,$03        ; drawmode
-    ld (MODE),a
+start1:
+    DI    
     ;
 loop0:
     call CLS
     ld b,200
 loop1:
     call Random
-    ld h,a
-    ;
-    ld a,(MODE)
-    cp $03
-    jr nz, lp1
-    ;
+    ld h,a        
     call Random
     ld d,a
 lp1:
     call Random
     cp 192
     jr nc,lp1
-    ld l,a
-    ld a,(MODE)
-    cp $03
-    jr nz,keepDE
+    ld l,a    
 lp2:    
     call Random
     cp 192
     jr nc,lp2
     ld e,a
     ;    
-keepDE:        
-    ld a,(MODE)    
-    push bc
-    push hl        
-    call DrawLine
-    pop de
-    pop bc
-    ld a,$07
-    ld (MODE),a
+    push bc    
+    ld a,9
+    call DrawLine    
+    pop bc    
     djnz loop1
     jr loop0
     ;

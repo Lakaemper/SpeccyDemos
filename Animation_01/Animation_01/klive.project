@@ -6,11 +6,11 @@
     "screenFreq": "pal"
   },
   "clockMultiplier": 1,
-  "soundLevel": 0.5,
-  "soundMuted": false,
-  "savedSoundLevel": 0.5,
+  "soundLevel": 0,
+  "soundMuted": true,
+  "savedSoundLevel": 0.8,
   "media": {
-    "sdCard": "C:\\Users\\rlaka\\Klive\\ks2.cim"
+    "tape": ""
   },
   "machineSpecific": {},
   "ide": {
@@ -20,7 +20,15 @@
     "theme": "dark"
   },
   "debugger": {
-    "breakpoints": []
+    "breakpoints": [
+      {
+        "resource": "code/Utils.asm",
+        "line": 52,
+        "exec": true,
+        "ioMask": 65535,
+        "resolvedAddress": 36006
+      }
+    ]
   },
   "builder": {
     "roots": [
@@ -44,22 +52,30 @@
       "documents": [
         {
           "type": "CodeEditor",
-          "id": "E:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm",
+          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm",
           "position": {
-            "line": 36,
-            "column": 28
+            "line": 17,
+            "column": 7
           }
         },
         {
           "type": "CodeEditor",
-          "id": "E:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm",
+          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm",
           "position": {
-            "line": 25,
-            "column": 1
+            "line": 346,
+            "column": 13
+          }
+        },
+        {
+          "type": "CodeEditor",
+          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/Utils.asm",
+          "position": {
+            "line": 35,
+            "column": 15
           }
         }
       ],
-      "activeDocumentId": "E:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm"
+      "activeDocumentId": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm"
     },
     "Memory": {
       "topIndex": 2228,
@@ -71,12 +87,12 @@
       "bankLabel": true
     },
     "Disassembly": {
-      "topAddress": 35863,
+      "topAddress": 35597,
       "isFullView": true,
       "currentSegment": 0,
       "decimalView": false,
-      "bankLabel": true,
-      "autoRefresh": true,
+      "bankLabel": false,
+      "autoRefresh": false,
       "ram": true,
       "screen": false,
       "disassOffset": 0

@@ -32,7 +32,7 @@ CLS:
         ld SP,$5800
         ld hl,0
         ld b,192
-loop:        
+loopCls:        
         push hl         ; 16 pushes
         push hl
         push hl
@@ -49,7 +49,7 @@ loop:
         push hl
         push hl
         push hl
-        djnz loop
+        djnz loopCls
         ;
         ld SP,(UTILS_STACK_SAVE)
         pop hl
