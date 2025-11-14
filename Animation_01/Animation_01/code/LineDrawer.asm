@@ -4,24 +4,23 @@
 ; DrawLine(de->(x1,y1), hl->(x2,y2), a=0: make interrupt-safe)->():(?)
 ;
 ; Flag for differnt modes
-; bit 0: make routine interrupt-safe
-; bit 1: save final screen address and bit pattern
-; bit 2: skip screen address and bit pattern computation
-; bit 3: use xor instead of or for plotting
-; bit 4: omit last point (important for polygons in xor mode)
+; bit 0: make routine interrupt-safe (if 0: re-enables interrupt on return!)
+; bit 1: use xor instead of or for plotting
+; bit 2: omit last point (important for polygons in xor mode)
 INPUT_FLAG:     defb 0              
 ; (precomputed) plotting parameters
-; these will be stored and used if flag bit 1,2 are set accordingly
+; these will be stored and used in subsequent draw calls
 SCREEN_ADDRESS: defw 0
-BIT_PATTERN:    defb 0 
+BIT_PATTERN:    defb 0
+XY_ADDRESS:     defw $FFFF      ; x,y corresponding to screen_address/bit_pattern
 ; jump addresses for conditional jumps to handle different octants
 DL_JUMP_TABLE:  defw dl_oct4_belowT, dl_oct4_geqT, dl_oct5_belowT, dl_oct5_geqT
                 defw dl_oct6_belowT, dl_oct6_geqT, dl_oct7_belowT, dl_oct7_geqT
 DL_TEMP_STACK:  defw 0
 DrawLine:
         ld (INPUT_FLAG),a
-        bit 0,a                 ; skip interrupt-safety?
-        jr nz,dl_testModificationFlag    ; -> yes
+        bit 0,a                 ; make interrupt-safe?
+        jr z,dl_testModificationFlag    ; -> no
         ; if interrupt on call was enabled, 
         ; save registers (debug mode with ROM routines enabled)
         DI        
@@ -36,8 +35,9 @@ dl_testModificationFlag:
         ; modify plot code according to bit 3 in INPUT_FLAG        
         call ModifyPlotCode
         ;        
-        ; Start of draw line routine
-dl_start:                     
+; --------------------------
+; Start of draw line routine
+dl_start:                           
         ; Truncate y1, y2 to max 191
         ld b,191
         ld a,e
@@ -61,18 +61,21 @@ dl_x2OK:
         jr nz, dl_realLine
         ;
         ; Plot single dot
+        push hl                 ; save end coordinates
         call GetStartPattern
-        ld d,a
+        ld d,a        
         jp dl_endBresenham
         ;
 dl_realLine:
         ; make sure to draw direction down (y2 >= y1)
         ld a,e
-        cp l                ; TODO: fast horizontal
+        cp l                
+        jp z, dl_fastHorizontal ; same y: fast horizontal case TODO
         jr c, dl_yOrderOK
         ex de,hl            ; e <= l  (i.e. y1 <= y2)
 dl_yOrderOK:
-        push de             ;save start address x,y
+        push hl             ; save end address x2,y2
+        push de             ;save start address x1,y1
         ; determine octant (4,5,6 or 7 are remaining)
         ; compare x (distinguish 4,5 from 6,7)
         ld a,d
@@ -141,11 +144,8 @@ dl_jtOK:
         ; after this, the absolute x,y coordinates are not 
         ; of importance anymore. The algorithm is relative
         ; to the start pattern, abs(dx), abs(dy) and the octant        
-        pop hl                  ; start address (x,y) in hl                
-        ld a,(INPUT_FLAG)
-        bit 2,a                 ; skip computation?
-        jr nz,dl_skipScreenComp ; -> yes
-        call GetStartPattern  ; no, compute: screen address in hl, bit pattern in a        
+        pop hl                  ; start address (x,y) in hl                        
+        call GetStartPattern    ; -> screen address in hl, bit pattern in a        
         jr dl_plotPatternOK
 dl_skipScreenComp:
         ld hl,(SCREEN_ADDRESS)  ; retrieve: screen address in hl, bit pattern in a        
@@ -203,24 +203,28 @@ dl_continueLoop:
         ; currently, the alternative register set is active
         ; b is counter
         djnz dl_bresenham       ; are we there yet? no->loop
-        ;
+;
+; - - - - - - - 
+; End of breseham loop.
 dl_endBresenham:        
         ld a,(INPUT_FLAG)
         ld b,a
-        bit 4,b
+        bit 2,b                 ; plot final pixel?
         jr nz,dl_skipLast        
         ld a,d                  ; plot final pattern
 dl_MOD00: nop               ; WILL BE MODIFIED (xor/or)
         ld (hl),a                
 dl_skipLast:
-        bit 1,b                 ; store final address and pattern?
-        jr z, dl_noPatternStore
+        ; store final address and pattern        
         ld (SCREEN_ADDRESS),hl        
         ld a,c
         ld (BIT_PATTERN),a        
-dl_noPatternStore:
+        pop hl                  ; retrieve x2,y2
+        ld (XY_ADDRESS),hl
+        ;
+dl_checkInterSafe:        
         bit 0,b                 ; interrupt-safe mode?
-        ret nz                  ; -> no
+        ret z                   ; -> no
         ;
         pop IY
         pop IX
@@ -228,7 +232,7 @@ dl_noPatternStore:
         pop de
         pop bc
         exx
-        EI
+        EI                      ; re-enable interrupt (!)
         ret                     ; END BRESENHAM
         ;
 ; the following routines handle the different octant cases
@@ -347,6 +351,123 @@ dl_MOD08: nop               ; purge pattern into screen WILL BE MODIFIED
         ld d,c
         inc hl
         jp dl_continueLoop
+;
+; - - - - - - - - -
+; y1 = y2: special case for horizontal line
+FH_STARTPATTERNS:       defb $FF,$7F,$3F,$1F,$0F,$07,$03,$01
+FH_ENDPATTERNS:         defb $80,$C0,$E0,$F0,$F8,$FC,$FE,$FF
+dl_fastHorizontal:
+        ; make x1<x2=>draw from left to right
+        ld a,d
+        cp h
+        jr c, dl_fastHorz1
+        ld d,h
+        ld h,a
+        ld a,d        
+dl_fastHorz1:
+        push hl
+        push de
+        ; here: x1 < x2 (d<h)
+        ; get start pattern
+        ld hl,FH_STARTPATTERNS
+        and $07
+        ld e,a
+        ld d,0
+        add hl,de
+        ld b,(hl)               ; b: start pattern
+        ld hl,FH_ENDPATTERNS
+        add hl,de
+        ld c,(hl)               ; c: endpattern
+        pop de
+        pop hl
+        srl d
+        srl d
+        srl d                   ; x1/8
+        srl h
+        srl h
+        srl h                   ; x2/8
+        ;
+        ld a,h
+        sub d                   ; x2/8 - x1/8
+        jr nz,dl_fh_diffBytes
+        ;
+        ; here: x1 and x2 are in the same byte
+        ex de,hl                ; start x,y to hl
+        call GetStartPattern    ; byte in hl
+        ld d,a                  ; bit pattern
+        ld a,(INPUT_FLAG)
+        ld e,a
+        bit 2,a                 ; omit last bit?
+        jr z,dl_fh_cOK
+        ld a,d
+        xor c                   ; clear last bit in pattern
+        ld c,a
+dl_fh_cOK:                
+        ld a,b
+        and c
+dl_MOD09: nop                   ; WILL BE MODIFIED (or/xor (HL))
+        ld (hl),a               ; plot
+        ld b,e                  ; INPUT_FLAG in b
+        jp dl_checkInterSafe    
+
+
+; TODO !!!
+; Hello Rolf, how was your trip?
+; what to do here:
+; we are doing fast horizontal. The case where start and end were in one byte was handled.
+; b,c contain start and end pattern respectively.
+; now test if the byte address differs by one (zero was tested, difference is in a here)
+; if it differs by one, put b,c into subsequent addresses
+; (note: do ex de,hl; call GetStartPattern; here first somehow)
+; if it differs by more than 1, fill diff-1 bytes with value 255 between start and end pattern
+
+; well , i did that just now. But missing is:
+; testing...
+; add modification xor/or, i.e. add labels, add these labels to label table of modification, increment table length, done.
+
+; oh, and the omit last bit test must be done before the distiction of fill-byte cases
+; so, yes, a few things to do.
+
+
+dl_fh_diffBytes:
+        cp 1                            ; one byte difference?
+        jr nz,dl_fh_needsFillBytes      ; -> more than one
+        ;
+        ; put start and end to subsequent bytes
+        ex de,hl
+        call GetStartPattern
+        ld a,b
+        or (hl)                         ; TODO: ADD or/xor MODIFICATION
+        ld (hl),a
+        inc hl
+        ld a,c
+        or (hl)                         ; TODO: ADD or/xor MODIFICATION
+        ld a,(INPUT_FLAG)
+        ld b,a
+        jp dl_checkInterSafe
+        ;
+dl_fh_needsFillBytes:
+        dec a
+        push af
+        ex de,hl
+        call GetStartPattern 
+        ; etc etc etc
+
+        ; have a nice trip.
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ; ---------------------------------------------------------------------
 ; ModifyPlotCode(A: modificationflag)->():(af,b)
@@ -355,7 +476,7 @@ dl_MOD08: nop               ; purge pattern into screen WILL BE MODIFIED
 MODTABLE: defw dl_MOD00,dl_MOD01,dl_MOD02,dl_MOD03,dl_MOD04,dl_MOD05,dl_MOD06,dl_MOD07,dl_MOD08
 ModifyPlotCode:        
         push hl        
-        and $08                 ; test modification bit
+        and $02                 ; test modification bit
         ld a,$B6                ; opcode "or (HL)" (for bit = 0)
         jr z, dl_opcodeOK
         ld a, $AE               ; opcode "xor (HL)" (for bit = 1)
@@ -402,6 +523,18 @@ dl_intraRegion:
 ; GetStartPattern(hl: x,y)->(hl: screen address, a: bit pattern):(af,de,hl)
 LD_BIT_PATTERN_TABLE:  defb 128,64,32,16,8,4,2,1
 GetStartPattern:    
+    ; compare hl with address stored in XY_ADDRESS
+    ex de,hl
+    ld hl,(XY_ADDRESS)
+    and a
+    sbc hl,de           ; compare        
+    jr nz,dl_gsp1       ; needs to be computed
+    ld hl,(SCREEN_ADDRESS)
+    ld a,(BIT_PATTERN)
+    ret
+    ;    
+dl_gsp1:
+    ex de,hl
     ; Y
     ld a,l
     and $07         ; which intra-line?

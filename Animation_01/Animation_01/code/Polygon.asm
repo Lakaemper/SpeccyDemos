@@ -2,7 +2,7 @@
 ; polygon is stored as:
 ; numVertices (1b), x,y,x,y,x,y,... as signed bytes
 ; ----------------------------------------------------------
-PolySquare: defb $04,$f6,$f6,$f6,$0a
+PolySquare: defb $02,$f6,$f6,$f6,$0a
 
 
 

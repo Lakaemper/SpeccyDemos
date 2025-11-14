@@ -6,11 +6,11 @@
     "screenFreq": "pal"
   },
   "clockMultiplier": 1,
-  "soundLevel": 0,
-  "soundMuted": true,
-  "savedSoundLevel": 0.8,
+  "soundLevel": 0.5,
+  "soundMuted": false,
+  "savedSoundLevel": 0.5,
   "media": {
-    "tape": ""
+    "sdCard": "C:\\Users\\rlaka\\Klive\\ks2.cim"
   },
   "machineSpecific": {},
   "ide": {
@@ -25,8 +25,13 @@
         "resource": "code/Utils.asm",
         "line": 52,
         "exec": true,
-        "ioMask": 65535,
-        "resolvedAddress": 36006
+        "ioMask": 65535
+      },
+      {
+        "resource": "code/LineDrawer.asm",
+        "line": 148,
+        "exec": true,
+        "ioMask": 65535
       }
     ]
   },
@@ -52,30 +57,22 @@
       "documents": [
         {
           "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm",
+          "id": "E:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm",
           "position": {
-            "line": 17,
-            "column": 7
+            "line": 423,
+            "column": 1
           }
         },
         {
           "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm",
+          "id": "E:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm",
           "position": {
-            "line": 346,
-            "column": 13
-          }
-        },
-        {
-          "type": "CodeEditor",
-          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/Utils.asm",
-          "position": {
-            "line": 35,
-            "column": 15
+            "line": 13,
+            "column": 1
           }
         }
       ],
-      "activeDocumentId": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm"
+      "activeDocumentId": "E:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm"
     },
     "Memory": {
       "topIndex": 2228,

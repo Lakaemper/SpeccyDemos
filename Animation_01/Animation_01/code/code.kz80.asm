@@ -9,7 +9,28 @@ Start:
     #include "Polygon.asm"
     
 start1:
-    DI    
+    DI  
+
+    ld de,$0000
+    ld hl,$8080
+    ld a,6
+    call DrawLine
+
+
+    ld de,$8080
+    ld hl,$FF90
+    ld a,2
+    call DrawLine
+
+    halt
+
+
+
+
+
+
+
+
     ;
 loop0:
     call CLS
@@ -31,7 +52,7 @@ lp2:
     ld e,a
     ;    
     push bc    
-    ld a,9
+    ld a,$02            ; xor mode
     call DrawLine    
     pop bc    
     djnz loop1
