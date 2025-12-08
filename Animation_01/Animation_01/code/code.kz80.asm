@@ -11,16 +11,26 @@ Start:
 start1:
     DI  
 
-    ld de,$0000
-    ld hl,$8080
-    ld a,6
+    ld b,190
+    ld d,0    
+fgfg:    
+    ld e,b
+    ld l,b
+    ld h,b    
+    push bc
+    push de
+    push hl
+    
+    
+    
+    ld a,8
     call DrawLine
+    pop hl
+    pop de
+    pop bc
+    djnz fgfg
 
-
-    ld de,$8080
-    ld hl,$FF90
-    ld a,2
-    call DrawLine
+    
 
     halt
 

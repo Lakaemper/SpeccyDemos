@@ -7,6 +7,7 @@
 ; bit 0: make routine interrupt-safe (if 0: re-enables interrupt on return!)
 ; bit 1: use xor instead of or for plotting
 ; bit 2: omit last point (important for polygons in xor mode)
+; bit 3: leave plot mode unchanged (overrides bit 1), default (0): DO CHANGE
 INPUT_FLAG:     defb 0              
 ; (precomputed) plotting parameters
 ; these will be stored and used in subsequent draw calls
@@ -32,7 +33,9 @@ DrawLine:
         push IY
         exx
 dl_testModificationFlag:
-        ; modify plot code according to bit 3 in INPUT_FLAG        
+        bit 3,a         ; modify code?
+        jr nz,dl_start  ; no
+        ; modify plot code (or/xor)
         call ModifyPlotCode
         ;        
 ; --------------------------
@@ -70,7 +73,7 @@ dl_realLine:
         ; make sure to draw direction down (y2 >= y1)
         ld a,e
         cp l                
-        jp z, dl_fastHorizontal ; same y: fast horizontal case TODO
+        jp z, dl_fastHorizontal ; same y: fast horizontal case
         jr c, dl_yOrderOK
         ex de,hl            ; e <= l  (i.e. y1 <= y2)
 dl_yOrderOK:
@@ -365,8 +368,8 @@ dl_fastHorizontal:
         ld h,a
         ld a,d        
 dl_fastHorz1:
-        push hl
         push de
+        push hl
         ; here: x1 < x2 (d<h)
         ; get start pattern
         ld hl,FH_STARTPATTERNS
@@ -375,11 +378,25 @@ dl_fastHorz1:
         ld d,0
         add hl,de
         ld b,(hl)               ; b: start pattern
-        ld hl,FH_ENDPATTERNS
+        pop hl
+        push hl
+        ld a,h
+        and $07
+        ld e,a
+        ld hl,FH_ENDPATTERNS        
+        ld a,(INPUT_FLAG)
+        bit 2,a                 ; omit last point?
+        jr z,dl_getEndPattern
+        dec e                   ; go one left
+        jp P,dl_getEndPattern   ; if no underflow
+        ld c,0                  ; endpattern is 0
+        jr dl_gotEndPattern
+dl_getEndPattern:
         add hl,de
         ld c,(hl)               ; c: endpattern
-        pop de
+dl_gotEndPattern:
         pop hl
+        pop de
         srl d
         srl d
         srl d                   ; x1/8
@@ -393,42 +410,13 @@ dl_fastHorz1:
         ;
         ; here: x1 and x2 are in the same byte
         ex de,hl                ; start x,y to hl
-        call GetStartPattern    ; byte in hl
-        ld d,a                  ; bit pattern
-        ld a,(INPUT_FLAG)
-        ld e,a
-        bit 2,a                 ; omit last bit?
-        jr z,dl_fh_cOK
-        ld a,d
-        xor c                   ; clear last bit in pattern
-        ld c,a
-dl_fh_cOK:                
+        call GetStartPattern    ; byte address in hl, pattern in a is not used                        
         ld a,b
         and c
 dl_MOD09: nop                   ; WILL BE MODIFIED (or/xor (HL))
         ld (hl),a               ; plot
-        ld b,e                  ; INPUT_FLAG in b
-        jp dl_checkInterSafe    
-
-
-; TODO !!!
-; Hello Rolf, how was your trip?
-; what to do here:
-; we are doing fast horizontal. The case where start and end were in one byte was handled.
-; b,c contain start and end pattern respectively.
-; now test if the byte address differs by one (zero was tested, difference is in a here)
-; if it differs by one, put b,c into subsequent addresses
-; (note: do ex de,hl; call GetStartPattern; here first somehow)
-; if it differs by more than 1, fill diff-1 bytes with value 255 between start and end pattern
-
-; well , i did that just now. But missing is:
-; testing...
-; add modification xor/or, i.e. add labels, add these labels to label table of modification, increment table length, done.
-
-; oh, and the omit last bit test must be done before the distiction of fill-byte cases
-; so, yes, a few things to do.
-
-
+        jp dl_fastHorzEnd
+        ;
 dl_fh_diffBytes:
         cp 1                            ; one byte difference?
         jr nz,dl_fh_needsFillBytes      ; -> more than one
@@ -437,43 +425,49 @@ dl_fh_diffBytes:
         ex de,hl
         call GetStartPattern
         ld a,b
-        or (hl)                         ; TODO: ADD or/xor MODIFICATION
+dl_MOD10:   nop                         ; or/xor MODIFICATION
         ld (hl),a
         inc hl
         ld a,c
-        or (hl)                         ; TODO: ADD or/xor MODIFICATION
-        ld a,(INPUT_FLAG)
-        ld b,a
-        jp dl_checkInterSafe
+dl_MOD11:   nop                         ; or/xor MODIFICATION
+        ld (hl),a
+        jp dl_fastHorzEnd
         ;
 dl_fh_needsFillBytes:
         dec a
         push af
         ex de,hl
         call GetStartPattern 
-        ; etc etc etc
-
-        ; have a nice trip.
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
+        ld a,b                          ; start pattern
+dl_MOD12:   nop                         ; or/xor MODIFICATION
+        ld (hl),a
+        ; fill n times with 255
+        pop af
+        ld b,a
+        ld a,$FF
+        ld e,a
+        inc hl
+dl_MOD13:   nop                         ; or/xor MODIFICATION
+        ld (hl),a
+        ld a,e
+        inc hl
+        djnz dl_MOD13
+        ;
+        ld a,c                          ; final pattern
+dl_MOD14:   nop                         ; or/xor MODIFICATION        
+        ld (hl),a
+        ;
+dl_fastHorzEnd:
+        ld a,(INPUT_FLAG)
+        ld b,a
+        jp dl_checkInterSafe
 
 ; ---------------------------------------------------------------------
 ; ModifyPlotCode(A: modificationflag)->():(af,b)
 ; Modifies the DrawLine code: for screen-plotting, xor/or is used depending
 ; on bit 1 of the MODE flag
-MODTABLE: defw dl_MOD00,dl_MOD01,dl_MOD02,dl_MOD03,dl_MOD04,dl_MOD05,dl_MOD06,dl_MOD07,dl_MOD08
+MODTABLE:       defw dl_MOD00,dl_MOD01,dl_MOD02,dl_MOD03,dl_MOD04,dl_MOD05,dl_MOD06,dl_MOD07,dl_MOD08
+                defw dl_MOD09,dl_MOD10,dl_MOD11,dl_MOD12,dl_MOD13,dl_MOD14
 ModifyPlotCode:        
         push hl        
         and $02                 ; test modification bit
@@ -481,7 +475,7 @@ ModifyPlotCode:
         jr z, dl_opcodeOK
         ld a, $AE               ; opcode "xor (HL)" (for bit = 1)
 dl_opcodeOK:
-        ld b,9                  ; number of modifications
+        ld b,15                  ; number of modifications
         ld (DL_TEMP_STACK),SP
         ld SP,MODTABLE
 dl_modificationLoop:
