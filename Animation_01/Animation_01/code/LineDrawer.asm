@@ -3,8 +3,10 @@
 ; ------------------------------------------------------
 ; DrawLine(de->(x1,y1), hl->(x2,y2), a=0: make interrupt-safe)->():(?)
 ;
-; Flag for differnt modes
-; bit 0: make routine interrupt-safe (if 0: re-enables interrupt on return!)
+; Flag for different modes
+; bit 0: make routine interrupt-safe (if 0: re-enables interrupt on return! )
+;                                    0 means: interrupt is assumed to be disabled on entry
+;                                    1 means: interrupt is assumed to be enabled on entry
 ; bit 1: use xor instead of or for plotting
 ; bit 2: omit last point (important for polygons in xor mode)
 ; bit 3: leave plot mode unchanged (overrides bit 1), default (0): DO CHANGE

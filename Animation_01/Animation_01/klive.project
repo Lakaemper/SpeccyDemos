@@ -20,15 +20,7 @@
     "theme": "dark"
   },
   "debugger": {
-    "breakpoints": [
-      {
-        "resource": "code/code.kz80.asm",
-        "line": 27,
-        "exec": true,
-        "ioMask": 65535,
-        "resolvedAddress": 36230
-      }
-    ]
+    "breakpoints": []
   },
   "builder": {
     "roots": [
@@ -54,16 +46,16 @@
           "type": "CodeEditor",
           "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm",
           "position": {
-            "line": 26,
-            "column": 11
+            "line": 0,
+            "column": 0
           }
         },
         {
           "type": "CodeEditor",
           "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm",
           "position": {
-            "line": 443,
-            "column": 18
+            "line": 9,
+            "column": 81
           }
         },
         {
@@ -73,9 +65,25 @@
             "line": 52,
             "column": 1
           }
+        },
+        {
+          "type": "CodeEditor",
+          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/PolygonManager.asm",
+          "position": {
+            "line": 14,
+            "column": 22
+          }
+        },
+        {
+          "type": "CodeEditor",
+          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/Polygon.asm",
+          "position": {
+            "line": 0,
+            "column": 0
+          }
         }
       ],
-      "activeDocumentId": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm"
+      "activeDocumentId": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/Polygon.asm"
     },
     "Memory": {
       "topIndex": 2228,

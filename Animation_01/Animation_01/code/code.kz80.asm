@@ -9,7 +9,8 @@ Start:
     #include "Polygon.asm"
     
 start1:
-    DI  
+    
+    DI      
 
     ld b,190
     ld d,0    
@@ -70,6 +71,7 @@ lp2:
     ;
     ;
     ;------------------
+human:
     ld hl,HUMAN_00
     ld b,12    
 humanLoop:    
@@ -102,10 +104,7 @@ innerLoop:
     ld e,a
     dec c
     jr nz, outerLoop
-    ;
-    
-
-    
+    ;    
     ld b,4
 wait:
     call WaitFrame
