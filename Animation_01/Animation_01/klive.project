@@ -46,16 +46,16 @@
           "type": "CodeEditor",
           "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm",
           "position": {
-            "line": 0,
-            "column": 0
+            "line": 54,
+            "column": 12
           }
         },
         {
           "type": "CodeEditor",
           "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm",
           "position": {
-            "line": 9,
-            "column": 81
+            "line": 102,
+            "column": 37
           }
         },
         {
@@ -78,8 +78,8 @@
           "type": "CodeEditor",
           "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/Polygon.asm",
           "position": {
-            "line": 0,
-            "column": 0
+            "line": 29,
+            "column": 15
           }
         }
       ],

@@ -8,8 +8,11 @@
 ;                                    0 means: interrupt is assumed to be disabled on entry
 ;                                    1 means: interrupt is assumed to be enabled on entry
 ; bit 1: use xor instead of or for plotting
-; bit 2: omit last point (important for polygons in xor mode)
-; bit 3: leave plot mode unchanged (overrides bit 1), default (0): DO CHANGE
+; bit 2: leave plot mode unchanged (overrides bit 1), default (0): DO CHANGE
+; bit 3: omit last point (important for polygons in xor mode)
+; bit 7: do NOT plot. This flag is used if plot mode should be initialized without drawing. Returns after plot modification.
+;        If set, bit 2 must be zero to have this bit an effect.
+
 INPUT_FLAG:     defb 0              
 ; (precomputed) plotting parameters
 ; these will be stored and used in subsequent draw calls
@@ -35,10 +38,14 @@ DrawLine:
         push IY
         exx
 dl_testModificationFlag:
-        bit 3,a         ; modify code?
+        bit 2,a         ; modify code?
         jr nz,dl_start  ; no
         ; modify plot code (or/xor)
+        push af
         call ModifyPlotCode
+        pop bc          ; b = mode        
+        bit 7,b         ; modification only?
+        jp nz, dl_checkInterSafe
         ;        
 ; --------------------------
 ; Start of draw line routine
@@ -214,7 +221,7 @@ dl_continueLoop:
 dl_endBresenham:        
         ld a,(INPUT_FLAG)
         ld b,a
-        bit 2,b                 ; plot final pixel?
+        bit 3,b                 ; plot final pixel?
         jr nz,dl_skipLast        
         ld a,d                  ; plot final pattern
 dl_MOD00: nop               ; WILL BE MODIFIED (xor/or)
@@ -387,7 +394,7 @@ dl_fastHorz1:
         ld e,a
         ld hl,FH_ENDPATTERNS        
         ld a,(INPUT_FLAG)
-        bit 2,a                 ; omit last point?
+        bit 3,a                 ; omit last point?
         jr z,dl_getEndPattern
         dec e                   ; go one left
         jp P,dl_getEndPattern   ; if no underflow

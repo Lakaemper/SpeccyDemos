@@ -10,38 +10,13 @@ Start:
     
 start1:
     
-    DI      
-
-    ld b,190
-    ld d,0    
-fgfg:    
-    ld e,b
-    ld l,b
-    ld h,b    
-    push bc
-    push de
-    push hl
-    
-    
-    
-    ld a,8
+    DI
+    ; draw once to set mode, erase immediately
+    ld de,0
+    ld hl,$0
+    ld a,128        ;set mode only, mode = OR
     call DrawLine
-    pop hl
-    pop de
-    pop bc
-    djnz fgfg
-
     
-
-    halt
-
-
-
-
-
-
-
-
     ;
 loop0:
     call CLS
@@ -63,7 +38,7 @@ lp2:
     ld e,a
     ;    
     push bc    
-    ld a,$02            ; xor mode
+    ld a,$04            ; flag: don't update mode
     call DrawLine    
     pop bc    
     djnz loop1

@@ -9,7 +9,7 @@ PolySquare: defb $02,$f6,$f6,$f6,$0a
 ;
 ; Poly.draw(b: num vertices, c: mode, hl:pointer to vertices, de:center)->():(?)
 Poly.draw:    
-    push bc
+    push bc 
     push de
     ld a,(hl)       ; x1
     add d
