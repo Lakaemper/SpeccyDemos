@@ -575,3 +575,13 @@ dl_gsp1:
     pop hl          ; address in hl    
     ;    
     ret
+
+; ---------------------------------------------------------------------
+; InitLine(a: mode)->():(af,bc,de,hl)
+; Initialize draw mode (or/xor) without plotting 
+; mode as in DrawLine, bit 7 set
+InitLine:
+    ld de,0
+    ld hl,$0
+    or a,$80        ;set mode only
+    jp DrawLine

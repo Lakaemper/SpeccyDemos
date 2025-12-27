@@ -6,17 +6,43 @@ Start:
     #include "AnimationData.asm"
     #include "LineDrawer.asm"
     #include "Utils.asm"
-    #include "Polygon.asm"
+    #include "Maze.asm"
+
     
 start1:
-    
     DI
-    ; draw once to set mode, erase immediately
-    ld de,0
-    ld hl,$0
-    ld a,128        ;set mode only, mode = OR
-    call DrawLine
+    call CLS
+    xor a
+    call InitLine    
+    call InitMaze
     
+    
+    ld a,0
+    ld hl,MAZE
+    ld (hl),a
+    inc hl
+    ld (hl),a
+    ld de,$000f
+    add hl,de
+    ld (hl),a
+    
+    
+    ld a,$04        ; green FG
+    ld de,$0810     ; pos 8,16    
+    call DrawMaze
+
+    call HK_searchNextStart
+
+
+
+    halt
+
+; ============================================================
+; Line Drawing Test
+    DI
+    ; draw once to set mode
+    xor a
+    call InitLine    
     ;
 loop0:
     call CLS
