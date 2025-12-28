@@ -23,10 +23,10 @@
     "breakpoints": [
       {
         "resource": "code/code.kz80.asm",
-        "line": 38,
+        "line": 37,
         "exec": true,
         "ioMask": 65535,
-        "resolvedAddress": 36963
+        "resolvedAddress": 37326
       }
     ]
   },
@@ -54,23 +54,39 @@
           "type": "CodeEditor",
           "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm",
           "position": {
-            "line": 34,
-            "column": 28
+            "line": 27,
+            "column": 11
+          }
+        },
+        {
+          "type": "CodeEditor",
+          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/MazeDweller.asm",
+          "position": {
+            "line": 159,
+            "column": 11
           }
         },
         {
           "type": "CodeEditor",
           "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/Maze.asm",
           "position": {
-            "line": 223,
-            "column": 37
+            "line": 154,
+            "column": 10
+          }
+        },
+        {
+          "type": "CodeEditor",
+          "id": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/LineDrawer.asm",
+          "position": {
+            "line": 526,
+            "column": 11
           }
         }
       ],
       "activeDocumentId": "C:/GitCopies/SpeccyDemos/Animation_01/Animation_01/code/code.kz80.asm"
     },
     "Memory": {
-      "topIndex": 2262,
+      "topIndex": 2318,
       "isFullView": true,
       "currentSegment": 0,
       "decimalView": false,

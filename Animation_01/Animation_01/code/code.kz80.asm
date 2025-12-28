@@ -7,31 +7,30 @@ Start:
     #include "LineDrawer.asm"
     #include "Utils.asm"
     #include "Maze.asm"
+    #include "MazeDweller.asm"
 
-    
 start1:
     DI
-    call CLS
-    xor a
-    call InitLine    
+    call CLS    
     call InitMaze
-    
-    
-    ld a,0
-    ld hl,MAZE
-    ld (hl),a
-    inc hl
-    ld (hl),a
-    ld de,$000f
-    add hl,de
-    ld (hl),a
-    
-    
-    ld a,$04        ; green FG
-    ld de,$0810     ; pos 8,16    
+    call InitDwellers
+    call CreateMaze      
     call DrawMaze
 
-    call HK_searchNextStart
+    
+    ld a,0
+DwellerLoop:    
+    call CreateDweller    
+    push af
+    xor a
+    call DrawDweller
+    pop af
+    inc a
+    cp DW_NUMDWELLERS
+    jr nz,DwellerLoop
+
+    
+
 
 
 

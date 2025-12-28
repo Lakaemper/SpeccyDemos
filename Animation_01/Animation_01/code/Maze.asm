@@ -5,7 +5,6 @@
 ; low  nibble: walls. bits 0,1,2,3: n,s,w,e
 ; bit 7: 0->non-maze cell (temp flag for maze creation)
 MAZE:   defs    16*16       ; Maze data, cells.    
-
 ; ---------------------------------------------------------------------------
 ; InitializeMaze()->():(af,bc,de,hl)
 ; Initializes maze space and creates a unique solution maze using the Hunt and Kill ALgo
@@ -17,18 +16,22 @@ InitMaze:
     ld bc,$00ff
     ld (hl),a
     LDIR
-    ;        
-    jp CreateMaze   ; create the maze and return
+    ret    
 
 ; ---------------------------------------------------------------------------
-; DrawMaze(de: offset (r,c), a: color (spectrum attribute))->():(af,bc,de,hl)
+; DrawMaze()->():()
 ; Draws 16x16 maze at r,c CHARACTER offset position, each cell is one character
-; Offset (i.e. top left corner) row must be in [0,8], col in [0,16]
+MAZE_OFFSET:        dw  $0810
+MAZE_ATTR:          db  $03
 DrawMaze:
-MAZE_OFFSET:     dw  0
 ; - - - - - - - -
-; init attributes    
-    ld (MAZE_OFFSET),de
+    push af
+    push bc
+    push de
+    push hl   
+    ;
+; init attributes 
+    ld de,(MAZE_OFFSET)       
     ld c,a    
     rrc d
     rrc d
@@ -44,7 +47,7 @@ MAZE_OFFSET:     dw  0
 DM_nc1:
     ld hl, $5800        ; spectrum attribute region
     add hl,de           ; base address in hl
-    ld a,c
+    ld a,(MAZE_ATTR)
     ld b,$10
     ld c,$10            ; bc: 16x16
     ld de,$0010         ; offset 16 (32-16=16)
@@ -73,6 +76,32 @@ DM_cellLoop:
     cp $10
     jr c,DM_cellLoop
     ;
+    pop hl
+    pop de
+    pop bc
+    pop af
+    ret
+
+; ---------------------------------------------------------------------------
+; MZ_getScreenAddress(de:(r,c))->(hl:screen address):(af,hl)
+MZ_getScreenAddress:
+    ld hl,(MAZE_OFFSET)
+    ld a,d              ; compute row->y=l    
+    add a,h
+    sla a
+    sla a
+    sla a    
+    ld h,a
+    ld a,e              ; compute col->x=h    
+    add a,l
+    sla a
+    sla a
+    sla a
+    ld l,h    
+    ld h,a        
+    push de
+    call GetStartPattern    ; in LineDrawer.asm, screenAddress -> hl
+    pop de
     ret
 
 ; ---------------------------------------------------------------------------
@@ -98,25 +127,9 @@ CELLCHARS:  defb $00,$00,$00,$00,$00,$00,$00,$00        ;  0 = ----
             defb $ff,$81,$81,$81,$81,$81,$81,$ff        ; 15 = nswe
 DrawMazeCell:   
     ; get screen address
-    ld hl,(MAZE_OFFSET)
-    ld a,d              ; compute row->y=l    
-    add a,h
-    sla a
-    sla a
-    sla a    
-    ld h,a
-    ld a,e              ; compute col->x=h    
-    add a,l
-    sla a
-    sla a
-    sla a
-    ld l,h    
-    ld h,a        
-    push de
-    call GetStartPattern    ; in LineDrawer.asm, screenAddress -> hl
+    call MZ_getScreenAddress
     ;
     ; get maze content
-    pop de
     push hl             ; stack: screen, de: (r,c)    
     call MZ_getCellAddress  ; in hl        
     ld a,(hl)           ; a->maze cell content
@@ -139,7 +152,6 @@ DMC_loop1:
     ld (de),a
     inc hl    
     inc d
-DMC_noCarry:
     djnz DMC_loop1
     ret
 
@@ -167,105 +179,200 @@ MZ_getCellAddress:
 ; Hunt and Kill Maze Algo
 ; =============================================================================
 ; CreateMaze()->():(?)
+; assumption: maze is initialized by InitMaze
+
+MAZE_MAXPATHLENGTH  equ 15
 CreateMaze:
-    ret
-
-; ---------------------------------------------------------------------------
-; HK_isDeadEnd(de: (r,c)) -> (a: dead end if non-zero) : (af)
-; Helper for Hunt and Kill
-; check if cell at (r,c) is dead end, i.e. no wall can be torn down to a 
-; non-maze cell
-HK_isDeadEnd:    
-    call HK_getBoundaryState
-    ld b,a    
+    ; find random starting point
+    call random
+    and $0f
+    ld d,a
+    call random
+    and $0f
+    ld e,a
     ;
-    ld a,$ff           ; default: is maze
-    bit 0,b
-    call z,HK_northIsMaze
-    and a
-    jr z,HKD_isOK
-    ;
-    ld a,$ff           ; default: is maze
-    bit 1,b
-    call z,HK_southIsMaze
-    and a
-    jr z,HKD_isOK
-    ;
-    ld a,$ff           ; default: is maze
-    bit 2,b
-    call z,HK_westIsMaze
-    and a
-    jr z,HKD_isOK
-    ;
-    ld a,$ff           ; default: is maze
-    bit 3,b
-    call z,HK_eastIsMaze
-    and a
-    jr z,HKD_isOK
-    ;
-    ld a,$ff            ; dead end.
-    ret
-HKD_isOK:
-    xor a
-    ret
-
-; ---------------------------------------------------------------------------
-; HK_searchNextStart()->(de: (r,c), a:$ff=invalid location):(?)
-; Search a new start location for random walk. Start location is a cell that
-; is (a) non-maze, and (b) has a maze neighboring cell
-; (very similar to dead end...)
-HK_searchNextStart:
-    ld de,$0000          ; start top left
-    
-HKS_loop:
     call MZ_getCellAddress
-    ld a,(hl)
-    bit 7,a              ; non maze?
-    jr z,HKS_checkNext
+    res 7,(hl)      ; maze cell    
     ;
-    call HK_getBoundaryState
-    ld b,a    
+    ld b,MAZE_MAXPATHLENGTH
+; - - - - - - - - - - - - 
+; Hunt and Kill main loop
+; assumes valid start point (r,c) in de
+; and address in hl
+HK_mainLoop:    
+    ld a,1          ; mode: search non maze
+    call HK_getNBSignature
+    and $0f         ; dead end?
+    jr z,HK_startNewPath ; -> yes
+    call HK_getRandomDirection     ; select from valid directions    
+    call HK_extendPath             ; remove walls and move    
+    djnz HK_mainLoop               ; if path shoty enough: continue
+                                   ; otherwise, this falls through
+; end mainloop
+;
+    ; Dead end: search new starting point
+HK_startNewPath:
+    call HK_getNextStart
+    and a                   ; valid start point?
+    jr z,HK_end             ; -> no, done
+    call MZ_getCellAddress
+    res 7,(hl)              ; maze cell
+    push hl
+    push de                 ; store position to undo "move" in extendPath
+    call HK_extendPath      ; tear down walls to existing path
+    pop de                  ; but stay in new position
+    pop hl    
+    ld b,MAZE_MAXPATHLENGTH
+    jr HK_mainLoop
     ;
-    xor a               ; default: is non-maze
-    bit 0,b
-    call z,HK_northIsMaze
-    and a
-    jr nz,HKS_foundStart
+HK_end:
+    ret
+
+; ---------------------------------------------------------------------------
+; HK_extendPath(de:(r,c),hl:address,a:direction)->(de:(r1,c1),hl:address1):(hl,de,af)
+; Removes walls and moves one step forward
+HK_extendPath:
+    push bc
+    ; remove walls towards direction    
+    ld c,a          
+    cpl
+    and (hl)
+    ld (hl),a
+    ld a,c
+    ; go to next cell
+    call HK_move
+    res 7,(hl)      ; make maze cell
     ;
-    xor a               ; default: is non-maze
-    bit 1,b
-    call z,HK_southIsMaze
-    and a
-    jr nz,HKS_foundStart
-    ;
-    xor a               ; default: is non-maze
-    bit 2,b
-    call z,HK_westIsMaze
-    and a
-    jr nz,HKS_foundStart
-    ;
-    xor a               ; default: is non-maze
-    bit 3,b
-    call z,HK_eastIsMaze
-    and a
-    jr nz,HKS_foundStart
-    ;
-HKS_checkNext:
+    ; remove walls towards source direction
+    ld b,$03        ; mask n,s
+    cp $04
+    jr c,HKE_maskOK
+    ld b,$0c
+HKE_maskOK:
+    xor b           ; flip n<->s , w<->e
+    cpl
+    and (hl)
+    ld (hl),a
+    pop bc
+    ret
+
+; ---------------------------------------------------------------------------
+; HK_move(de:(r,c),hl=address(r,c),a=direction)->(de:(r1,c1),hl:address(r1,c1)):(de,hl)
+; moves one cell in direction A
+; assumes valid direction
+HK_move:
+    ; north
+    bit 0,a
+    jr z, HKM_south
+    dec d
+    push de
+    ld de,$FFF0         ; -16
+    jr HKM_adjustHL
+HKM_south:
+    bit 1,a
+    jr z,HKM_west
+    inc d
+    push de
+    ld de,$0010         ; +16
+    jr HKM_adjustHL
+HKM_west:
+    bit 2,a
+    jr z,HKM_east
+    dec e
+    push de
+    ld de,$FFFF         ; -1
+    jr HKM_adjustHL
+HKM_east:    
     inc e
-    ld a,e
-    cp $10
-    jr c,HKS_loop
+    push de
+    ld de,$0001         ; +1
+HKM_adjustHL:
+    add hl,de
+    pop de
+    ret
+    
+; ---------------------------------------------------------------------------
+; HK_getNextStart()->(de:(r,c) next start, a:direction of maze-cell, 0: invalid):(de,af)
+; Gets next starting point in main loop. A valid point is 
+; (a) non maze, (b) has at least one maze neighbor
+; if returned invalid, there are no non-maze points left.
+HK_getNextStart:
+    push hl
+    ld de,$0000         ; top left
+    call MZ_getCellAddress
+    ;
+HKN_loop:
+    bit 7,(hl)          ; non maze?
+    jr z,HKN_checkNext
+    xor a               ; look for maze neighbors
+    call HK_getNBSignature
+    and $0f             ; neighbor bits?
+    jr  nz, HKN_found   ; yes, done.
+HKN_checkNext:
+    inc hl
+    inc e
+    bit 4,e
+    jr z,HKN_loop
     ld e,0
     inc d
-    cp $10
-    jr c,HKS_loop
+    bit 4,d
+    jr z,HKN_loop
     ;
-    ; nothing found
-    ld a,$ff
+    xor a               ; invalid
+    pop hl
+    ret
+    ;
+HKN_found:
+    call HK_getRandomDirection     ; select one of the directions    
+    pop hl    
     ret
 
-HKS_foundStart:
-    xor a
+; ---------------------------------------------------------------------------
+; HK_getNBSignature(de: (r,c), a:mode) -> (a: valid direction bits) : (af)
+; Helper for Hunt and Kill
+; Returns all directions of <mode> maze cells.
+; mode: 0: search for maze, 1: search for non-maze
+; Returns signed bits, 0,1,2,3->n,s,w,e for neighbors that match mode
+; If all bits are zero => dead end
+HK_getNBSignature:    
+    push bc
+    ld c,a              ; c=mode (0 or 1)
+    call HK_getBoundaryState    
+    cpl
+    and $0f
+    ld b,a              ; signature    
+    ;
+    ; north
+    bit 0,b
+    jr z,HK_south       ; invalid, no testing necessary
+    call HK_northIsMaze
+    xor c               ; mode
+    jr nz,HK_south      ; keep bit valid
+    res 0,b             ; invalidate
+HK_south:
+    bit 1,b
+    jr z,HK_west        ; invalid, no testing necessary
+    call HK_southIsMaze
+    xor c               ; mode
+    jr nz,HK_west       ; keep bit valid
+    res 1,b             ; invalidate
+HK_west:
+    bit 2,b
+    jr z,HK_east        ; invalid, no testing necessary
+    call HK_westIsMaze
+    xor c               ; mode
+    jr nz,HK_east       ; keep bit valid
+    res 2,b             ; invalidate
+HK_east:
+    bit 3,b
+    jr z,HK_done        ; invalid, no testing necessary
+    call HK_eastIsMaze
+    xor c               ; mode
+    jr nz,HK_done       ; keep bit valid
+    res 3,b             ; invalidate
+HK_done:
+    ld a,b
+    pop bc
     ret
 
 ; ---------------------------------------------------------------------------
@@ -316,12 +423,57 @@ HK_eastIsMaze:
     inc e
 
 HK_isMaze:
-    xor a
+    xor a   ; default: a=0
     push hl
     call MZ_getCellAddress
     bit 7,(hl)
     pop hl
     pop de
     ret nz
-    dec a
+    inc a   ; a=1
     ret
+
+; ---------------------------------------------------------------------------
+; HK_getRandomDirection(a:valid directions)->(a: selected direction):(af)
+; assumes at least one valid direction
+HKN_BITCOUNT: db 0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4
+HK_getRandomDirection:
+    push bc
+    push de
+    push hl
+    ; count directions
+    and 0x0F        ; lower nibble
+    ld  hl, HKN_BITCOUNT
+    ld  e, a
+    ld  d, 0
+    add hl, de
+    ld  h, (hl)     ; h = number of bits
+    ld  l,a         ; bits
+    ;
+HKR_randLoop:
+    call Random
+    and $07
+    cp h           ; a must be in [0..h-1]
+    jr nc,HKR_randLoop
+    ;
+    ; select n'th set bit in L
+    inc a
+    ld b,a
+    ld a,l
+    ld c,$01        ; mask
+HKR_maskLoop:
+    and c           ; test bit
+    jr z,HKR_nextBit
+    djnz HKR_nextBit
+    ;
+    ; bit was found
+    ld a,c
+    pop hl
+    pop de
+    pop bc
+    ret
+    ;
+HKR_nextBit:
+    ld a,l          ; restore
+    sla c
+    jr HKR_maskLoop
